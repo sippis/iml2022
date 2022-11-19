@@ -1,0 +1,35 @@
+
+---
+title: "IML Term project"
+author: "Julia Palorinne, Pyry Silomaa, Sara Sippola"
+output: pdf_document
+date: '`r format(Sys.Date(), "%d.%m.%Y")`'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r load data}
+npf <- read.csv("npf_train.csv")
+```
+
+```{r preprocess data}
+
+# Muokataan dataa.
+
+# Luodaan class2
+npf$class2 <- factor("event", levels = c("nonevent", "event"))
+npf$class2[npf$class4 == "nonevent"] <- "nonevent"
+
+# Tehdään päivämäärästä rivitunniste
+rownames(npf) <- npf[, "date"]
+
+# Poistetaan sarakkeet id, date, class4, partlybad
+npf <- npf[, -(1:4)]
+
+```
+
+# First level title
+## Second level title
+### etc.
