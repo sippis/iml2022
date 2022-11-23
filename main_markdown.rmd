@@ -30,6 +30,92 @@ npf <- npf[, -(1:4)]
 
 ```
 
+```{r functions}
+
+# mean squared error
+mse <- function(yhat, y) sqrt(mean((y - yhat)**2))
+
+# classification accuracy
+cacc <- function(pred, true) sum(as.integer(as.logical(pred == true)))/length(pred)
+
+# cross-validate
+# split n items into k folds of roughly equal size
+kpart <- function(n, k) {
+    rep_len(1:k, length.out = n)
+}
+
+# Find cross-validation predictions
+cv <- function(
+               formula, # Formula specifying which variables to use
+               data, # Dataset
+               model = lm, # Type of model to train (as a function)
+               n = nrow(data), # number of rows in the data matrix
+               k = min(n, 20), # number of cross-validation folds
+               split = kpart(n, k), # the split of n data items into k folds
+               ## function to train a model on data
+               train = function(data) model(formula, data = data),
+               ## function to make predictions on the trained model
+               pred = function(model, data) predict(model, newdata = data)) {
+    yhat <- NULL
+    for (i in 1:k) {
+        ## go through all folds, train on other folds, and make a prediction
+        mod <- train(data[split != i, ])
+        if (is.null(yhat)) {
+            ## initialise yhat to something of correct data type,
+            yhat <- pred(mod, data)
+        } else {
+            yhat[split == i] <- pred(mod, data[split == i, ])
+        }
+    }
+    yhat # finally, output cross-validation predictions
+}
+
+loocv <- function(
+               formula, # Formula specifying which variables to use
+               data, # Dataset
+               model = lm, # Type of model to train (as a function)
+               ## function to train a model on data
+               train = function(data) model(formula, data = data),
+               ## function to make predictions on the trained model
+               pred = function(model, data) predict(model, newdata = data)) {
+    yhat <- NULL
+    for (i in 1:nrow(data)) {
+        ## go through all stations, train on other stations, and make a prediction
+        mod <- train(data[-i, ])
+        if (is.null(yhat)) {
+            ## initialise yhat to something of correct data type,
+            yhat <- pred(mod, data)
+        } else {
+            yhat[i] <- pred(mod, data[i, ])
+        }
+    }
+    yhat # finally, output cross-validation predictions
+}
+
+```
+
+# Classifiers
+
+## Testing classifiers as they are
+
+```{r naive bayes}
+
+library(e1071)
+
+idx <- sample(nrow(npf), nrow(npf)/2)
+npf_train <- npf[idx, ]
+npf_test <- npf[-idx, ]
+
+# nb.fit <- naiveBayes(class2 ~ . , data = npf_train)
+
+a <- data.frame(train = cacc(predict(nb.fit, newdata = npf_train), npf_train$class2),
+                test = cacc(predict(nb.fit, newdata = npf_test), npf_test$class2),
+                CV = cacc(cv(class2 ~ ., npf_train, naiveBayes), npf_train$class2),
+                LOOCV = cacc(loocv(class2 ~ ., npf_train, naiveBayes), npf_train$class2))
+a
+
+```
+
 # First level title
 ## Second level title
 ### etc.
