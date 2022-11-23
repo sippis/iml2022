@@ -29,8 +29,6 @@ rownames(npf) <- npf[, "date"]
 npf <- npf[, -(1:4)]
 
 #Ensimmäiset perustason mallitestit
-simplemod1<-glm(class2~., data=npf, family=binomial(link="logit"));simplemod1
-simplemod2<-glm(class2~., data=npf, family=binomial(link="probit"));simplemod2
 ```
 
 # First level title
