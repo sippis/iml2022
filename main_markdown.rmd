@@ -28,6 +28,9 @@ rownames(npf) <- npf[, "date"]
 # Poistetaan sarakkeet id, date, class4, partlybad
 npf <- npf[, -(1:4)]
 
+#Ensimmäiset perustason mallitestit
+simplemod1<-glm(class4~., data=npf, family=binomial(link="logit"));simplemod1
+simplemod2<-glm(class4~., data=npf, family=binomial(link="probit"));simplemod2
 ```
 
 # First level title
