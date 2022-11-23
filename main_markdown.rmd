@@ -27,8 +27,6 @@ rownames(npf) <- npf[, "date"]
 
 # Poistetaan sarakkeet id, date, class4, partlybad
 npf <- npf[, -(1:4)]
-
-#Ensimmäiset perustason mallitestit
 ```
 
 # First level title
