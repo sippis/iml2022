@@ -16,8 +16,6 @@ library(kableExtra)
 npf <- read.csv("npf_train.csv")
 ```
 
-Columns selected by correlation
-
 ```{r preprocess data}
 
 # Dataset names:
@@ -291,6 +289,7 @@ mean(predsv==npf$class2)
 exp(-mean(log(perpsv)))
 ```
 
+\newpage
 
 # Preprocessing data
 
@@ -311,9 +310,11 @@ colnames(cm) <- rownames(cm) <- sapply(colnames(cm), function(s) gsub(".mean", "
 corrplot(cm, order = "FPC", tl.cex = 0.5, tl.col = "black")
 ```
 
+\newpage
+
 ### Correlation between measurements at different heights
 
-Looking at the numeric values, we see that the measurements at different heights have strong positive correlation. 
+Looking at the numeric values, we see that the measurements at different heights have strong positive correlation.
 
 ```{r correlation at different heights, message=FALSE}
 # Korrelaatiomatriisi
@@ -344,6 +345,7 @@ kable(cm[startsWith(colnames(cm), "T"), startsWith(colnames(cm), "T")],
   kable_styling()
 ```
 
+\newpage
 
 ### Measurement heights
 
