@@ -10,6 +10,7 @@ date: '`r format(Sys.Date(), "%d.%m.%Y")`'
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(kableExtra)
 ```
 
 ```{r load data}
@@ -31,12 +32,20 @@ npf <- data.frame(npfOrig[, (5:6)], npfOrig[, (13:16)], npfOrig[, (27:30)],
                   npfOrig[, (41:42)], npfOrig[, (53:54)], npfOrig[, (63:72)],
                   npfOrig[, (83:88)], npfOrig[, (99:104)])
 
+
+# Poistetaan sarakkeet id, date, class4, partlybad
+npfOrig <- npfOrig[, -(1:4)]
 # Calculate the correlation matrix
 cm <- cor(npf)
 
 # Order variables by 1st principal component
 corrplot(cm, order = "FPC", tl.cex = 0.5, tl.col = "black")
 
+# Puolitetaan training data jotta saadaan realistinen testausdata
+set.seed(42)
+idx <- sample(nrow(npfOrig), nrow(npfOrig)/2)
+npf_train <- npfOrig[idx, ]
+npf_test <- npfOrig[-idx, ]
 ```
 
 ```{r functions}
@@ -44,8 +53,13 @@ corrplot(cm, order = "FPC", tl.cex = 0.5, tl.col = "black")
 # mean squared error
 mse <- function(yhat, y) sqrt(mean((y - yhat)**2))
 
-# classification accuracy
-cacc <- function(pred, true) sum(as.integer(as.logical(pred == true)))/length(pred)
+## accuracy
+accuracy <- function(pred, y) mean(ifelse(pred >= 0.5, 1, 0) == y)
+
+## perplexity. Pakotetaan todennäköisyydet tässä välille [0.995, 0.005]
+perplexity <- function(pred, y){
+  pred <- ifelse(pred != 0 & pred != 1, pred, ifelse(pred == 0, 0.005, 0.995 ))
+  exp(-mean(log(ifelse(y == 1, pred, 1 - pred)))) }
 
 # cross-validate
 # split n items into k folds of roughly equal size
@@ -59,12 +73,12 @@ cv <- function(
                data, # Dataset
                model = lm, # Type of model to train (as a function)
                n = nrow(data), # number of rows in the data matrix
-               k = min(n, 20), # number of cross-validation folds
+               k = min(n, 10), # number of cross-validation folds
                split = kpart(n, k), # the split of n data items into k folds
                ## function to train a model on data
                train = function(data) model(formula, data = data),
                ## function to make predictions on the trained model
-               pred = function(model, data) predict(model, newdata = data)) {
+               pred = function(model, data) predict(model, newdata = data, type = "raw")[,2]) {
     yhat <- NULL
     for (i in 1:k) {
         ## go through all folds, train on other folds, and make a prediction
@@ -79,27 +93,27 @@ cv <- function(
     yhat # finally, output cross-validation predictions
 }
 
-loocv <- function(
-               formula, # Formula specifying which variables to use
-               data, # Dataset
-               model = lm, # Type of model to train (as a function)
-               ## function to train a model on data
-               train = function(data) model(formula, data = data),
-               ## function to make predictions on the trained model
-               pred = function(model, data) predict(model, newdata = data)) {
-    yhat <- NULL
-    for (i in 1:nrow(data)) {
-        ## go through all stations, train on other stations, and make a prediction
-        mod <- train(data[-i, ])
-        if (is.null(yhat)) {
-            ## initialise yhat to something of correct data type,
-            yhat <- pred(mod, data)
-        } else {
-            yhat[i] <- pred(mod, data[i, ])
-        }
-    }
-    yhat # finally, output cross-validation predictions
-}
+# loocv <- function(
+#                formula, # Formula specifying which variables to use
+#                data, # Dataset
+#                model = lm, # Type of model to train (as a function)
+#                ## function to train a model on data
+#                train = function(data) model(formula, data = data),
+#                ## function to make predictions on the trained model
+#                pred = function(model, data) predict(model, newdata = data, type = "raw")[,2]) {
+#     yhat <- NULL
+#     for (i in 1:nrow(data)) {
+#         ## go through all stations, train on other stations, and make a prediction
+#         mod <- train(data[-i, ])
+#         if (is.null(yhat)) {
+#             ## initialise yhat to something of correct data type,
+#             yhat <- pred(mod, data)
+#         } else {
+#             yhat[i] <- pred(mod, data[i, ])
+#         }
+#     }
+#     yhat # finally, output cross-validation predictions
+# }
 
 ```
 
@@ -107,21 +121,99 @@ loocv <- function(
 
 ## Testing classifiers as they are
 
+### Naive Bayes
+
 ```{r naive bayes}
 
 library(e1071)
 
-idx <- sample(nrow(npf), nrow(npf)/2)
-npf_train <- npf[idx, ]
-npf_test <- npf[-idx, ]
+nb.fit <- naiveBayes(class2 ~ . , data = npf_train, laplace = 1)
+nb.pred.cv <- cv(class2 ~ ., npf, naiveBayes) # Hidas prosessi, tehdään siksi vaan kerran
 
-# nb.fit <- naiveBayes(class2 ~ . , data = npf_train)
+nb_acc <- data.frame(train = accuracy(predict(nb.fit, newdata = npf_train, type = "raw")[,2], npf_train$class2),
+                     test = accuracy(predict(nb.fit, newdata = npf_test, type = "raw")[,2], npf_test$class2),
+                     CV = accuracy(nb.pred.cv, npf$class2))
 
-a <- data.frame(train = cacc(predict(nb.fit, newdata = npf_train), npf_train$class2),
-                test = cacc(predict(nb.fit, newdata = npf_test), npf_test$class2),
-                CV = cacc(cv(class2 ~ ., npf_train, naiveBayes), npf_train$class2),
-                LOOCV = cacc(loocv(class2 ~ ., npf_train, naiveBayes), npf_train$class2))
-a
+# Kaikkiin tulee Inf
+nb_perp <- data.frame(train = perplexity(predict(nb.fit, newdata = npf_train, type = "raw")[,2], npf_train$class2),
+                      test = perplexity(predict(nb.fit, newdata = npf_test, type = "raw")[,2], npf_test$class2),
+                      CV = perplexity(nb.pred.cv, npf$class2))
+
+kable(cbind(nb_acc,
+            nb_perp)) %>%
+  add_header_above(c("Accuracy" = 3, "Perplexity" = 3))
+
+```
+
+### LDA
+```{r lda}
+
+library(MASS)
+
+lda.fit <- lda(class2 ~ . , data = npf_train)
+
+# Cross-validation parametrit
+n = nrow(npf) # number of rows in the data matrix
+k = min(n, 10) # number of cross-validation folds
+split = kpart(n, k) # the split of n data items into k folds
+lda.pred.cv <- rep(0,n)
+
+# cv
+for (i in 1:k) {
+  ## go through all folds, train on other folds, and make a prediction
+  mod <- lda(class2 ~ ., npf[split != i, ])
+  lda.pred.cv[split == i] <- predict(mod, npf[split == i, ])$posterior[,2]
+}
+
+
+lda_acc <- data.frame(train = accuracy(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
+                      test = accuracy(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
+                      CV = accuracy(lda.pred.cv, npf$class2))
+
+lda_perp <- data.frame(train = perplexity(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
+                      test = perplexity(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
+                      CV = perplexity(lda.pred.cv, npf$class2))
+
+kable(cbind(lda_acc,
+            lda_perp)) %>%
+  add_header_above(c("Accuracy" = 3, "Perplexity" = 3))
+
+
+```
+
+### QDA
+```{r qda}
+
+library(MASS)
+
+qda.fit <- qda(class2 ~ . , data = npf_train)
+
+# Cross-validation parametrit
+n = nrow(npf) # number of rows in the data matrix
+k = min(n, 10) # number of cross-validation folds
+split = kpart(n, k) # the split of n data items into k folds
+qda.pred.cv <- rep(0,n)
+
+# cv
+for (i in 1:k) {
+  ## go through all folds, train on other folds, and make a prediction
+  mod <- qda(class2 ~ ., npf[split != i, ])
+  qda.pred.cv[split == i] <- predict(mod, npf[split == i, ])$posterior[,2]
+}
+
+qda_acc <- data.frame(train = accuracy(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
+                      test = accuracy(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
+                      CV = accuracy(qda.pred.cv, npf$class2))
+
+# Taas Inf :(
+qda_perp <- data.frame(train = perplexity(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
+                      test = perplexity(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
+                      CV = perplexity(qda.pred.cv, npf$class2))
+
+kable(cbind(qda_acc,
+            qda_perp)) %>%
+  add_header_above(c("Accuracy" = 3, "Perplexity" = 3))
+
 
 ```
 
