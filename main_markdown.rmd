@@ -115,6 +115,93 @@ a
 
 ```
 
+```{r glm}
+mod1<-glm(class2~., npf, family=binomial(link="logit"))
+mod2<-glm(class2~., npf, family=binomial(link="probit"))
+plot(mod1)
+prob1<-predict(mod1, npf, type="response")
+pred1<-c()
+perp1<-c()
+for(i in 1:dim(npf)[1]){
+  if(prob1[i]>=0.5){
+    pred1<-c(pred1,1)
+  } else{
+    pred1<-c(pred1,0)
+  }
+  if(npf$class2[i]==1){
+    perp1<-c(perp1,prob1[i])
+  } else{
+    perp1<-c(perp1,1-prob1[i])
+  }
+}
+mean(pred1==npf$class2)
+exp(-mean(perp1))
+```
+
+```{r lassoridge}
+mod3<-cv.glmnet(x=as.matrix(npf[,1:100]), y=npf[,101],alpha=1, family="binomial", type.measure="class")
+mod4<-cv.glmnet(x=as.matrix(npf[,1:100]), y=npf[,101],alpha=0, family="binomial", type.measure = "class")
+mod3a<-glmnet(x=as.matrix(npf[,1:100]), y=npf[,101],alpha=1, family="binomial", lambda=mod3$lambda.min)
+coef(mod3)
+plot(mod3a)
+plot(mod3$glmnet.fit, xvar="lambda")
+prob3a<-predict(mod3a, newx=as.matrix(npf[,1:100]), type="response")
+pred3a<-c()
+perp3a<-c()
+for(i in 1:dim(npf)[1]){
+  if(prob3a[i]>=0.5){
+    pred3a<-c(pred3a,1)
+  } else{
+    pred3a<-c(pred3a,0)
+  }
+  if(npf$class2[i]==1){
+    perp3a<-c(perp3a,prob3a[i])
+  } else{
+    perp3a<-c(perp3a,1-prob3a[i])
+  }
+}
+mean(pred3a==npf$class2)
+exp(-mean(perp3a))
+mod4a<-glmnet(x=as.matrix(npf[,1:100]), y=npf[,101],alpha=0, family="binomial", lambda=mod4$lambda.min)
+plot(mod4a)
+plot(mod4$glmnet.fit, xvar="lambda")
+prob4a<-predict(mod4a, newx=as.matrix(npf[,1:100]), type="response")
+pred4a<-c()
+perp4a<-c()
+for(i in 1:dim(npf)[1]){
+  if(prob4a[i]>=0.5){
+    pred4a<-c(pred4a,1)
+  } else{
+    pred4a<-c(pred4a,0)
+  }
+  if(npf$class2[i]==1){
+    perp4a<-c(perp4a,prob4a[i])
+  } else{
+    perp4a<-c(perp4a,1-prob4a[i])
+  }
+}
+mean(pred4a==npf$class2)
+exp(-mean(perp4a))
+```
+```{r svm}
+modsv<-tune(svm, class2~., data=npf, kernel="linear", scale=FALSE, ranges=list(cost=c(0.001, 0.01, 0.1, 1, 2, 5)))
+modsvm<-svm(class2~., data=npf, kernel="linear", scale=FALSE, cost=0.001,probability=TRUE)
+sv_best<-modsv$best.model
+predsv<-predict(modsvm,newdata=npf)
+predsv2<-predict(modsvm,newdata=npf,probability = T)
+probsv<-attr(predsv2, "probabilities")
+perpsv<-c()
+for(i in 1:dim(npf)[1]){
+  if(npf$class2[i]==0){
+    perpsv<-c(perpsv, probsv[i,2])
+  } else{
+    perpsv<-c(perpsv, probsv[i,1])
+  }
+  }
+mean(predsv==npf$class2)
+exp(-mean(log(perpsv)))
+```
+
 # First level title
 ## Second level title
 ### etc.
