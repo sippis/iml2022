@@ -209,31 +209,26 @@ kable(cbind(qda_acc,
 
 ## Correlation
 
-### Measurement heights
-
-```{r muuttujakorkeudet, message=FALSE}
-
-
-# Tunnistetaan, miltä korkeudelta on otettu mitäkin mittauksia
-# Sarakkeet
-cols <- unname(sapply(colnames(npf[endsWith(colnames(npf), ".mean")]), function(s) gsub(".mean", "", s)))
-
-# Taulukko muuttujista eri korkeuksissa (vain niille muuttujille, joista mittauksia eri korkeuksissa)
-kable(data.frame(m.42 = c(sort(cols[endsWith(cols, "42")])[1:6], NA, sort(cols[endsWith(cols, "42")])[7]),
-                                m.84 = c(NA, sort(cols[endsWith(cols, "84")])[1:5], NA, sort(cols[endsWith(cols, "84")])[6]),
-                                m.168 = c(sort(cols[endsWith(cols, "168")])),
-                                m.336 = c(sort(cols[endsWith(cols, "336")])[1:4], NA, sort(cols[endsWith(cols, "336")])[5], NA, NA),
-                                m.504 = c(sort(cols[endsWith(cols, "504")])[1:6], NA, sort(cols[endsWith(cols, "504")])[7]),
-                                m.672 = c(NA, NA, sort(cols[endsWith(cols, "672")])[2:5], NA, sort(cols[endsWith(cols, "672")])[6])),
-      caption = "Eri korkeuksissa tehdyt mittaukset: Mitä muuttujia löytyy millekin korkeudelle?") %>%
-  kable_styling()
-
-```
-
-### Correlation between measurements at different heights
+Looking at the correlation matrix as it was presented in the solutions to Exercise set 1, it is clear that the measurements of the same thing at different heights correlate, as do some of the radiation-related parameters.
 
 ```{r correlation, message=FALSE}
 library(corrplot)
+
+# Calculate the correlation matrix
+cm <- cor(npf[, endsWith(colnames(npf), ".mean")])
+# Remove .mean from column and row names.
+colnames(cm) <- rownames(cm) <- sapply(colnames(cm), function(s) gsub(".mean", "", s))
+# Order variables by 1st principal component (PCA later in the course!)
+corrplot(cm, order = "FPC", tl.cex = 0.5, tl.col = "black")
+
+```
+
+
+### Correlation between measurements at different heights
+
+Looking at the numeric values, we see that the measurements at different heights have strong positive correlation. Because of this, it is 
+
+```{r correlation, message=FALSE}
 
 # Korrelaatiomatriisi
 cm <- cor(npf[, endsWith(colnames(npf), ".mean")])
@@ -268,6 +263,28 @@ kable(cm[startsWith(colnames(cm), "RHIRGA"), startsWith(colnames(cm), "RHIRGA")]
 
 kable(cm[startsWith(colnames(cm), "T"), startsWith(colnames(cm), "T")],
       caption = "Correlation (T)") %>%
+  kable_styling()
+
+```
+
+
+### Measurement heights
+
+```{r muuttujakorkeudet, message=FALSE}
+
+
+# Tunnistetaan, miltä korkeudelta on otettu mitäkin mittauksia
+# Sarakkeet
+cols <- unname(sapply(colnames(npf[endsWith(colnames(npf), ".mean")]), function(s) gsub(".mean", "", s)))
+
+# Taulukko muuttujista eri korkeuksissa (vain niille muuttujille, joista mittauksia eri korkeuksissa)
+kable(data.frame(m.42 = c(sort(cols[endsWith(cols, "42")])[1:6], NA, sort(cols[endsWith(cols, "42")])[7]),
+                                m.84 = c(NA, sort(cols[endsWith(cols, "84")])[1:5], NA, sort(cols[endsWith(cols, "84")])[6]),
+                                m.168 = c(sort(cols[endsWith(cols, "168")])),
+                                m.336 = c(sort(cols[endsWith(cols, "336")])[1:4], NA, sort(cols[endsWith(cols, "336")])[5], NA, NA),
+                                m.504 = c(sort(cols[endsWith(cols, "504")])[1:6], NA, sort(cols[endsWith(cols, "504")])[7]),
+                                m.672 = c(NA, NA, sort(cols[endsWith(cols, "672")])[2:5], NA, sort(cols[endsWith(cols, "672")])[6])),
+      caption = "Eri korkeuksissa tehdyt mittaukset: Mitä muuttujia löytyy millekin korkeudelle?") %>%
   kable_styling()
 
 ```
