@@ -40,7 +40,7 @@ We also familiarized ourselves with the data through the [smear.avaa.scs.fi](htt
 We found that there are 38 unique columns if we select measurements from only one height. We ended up selecting height 16.8 meter as some measurements were taken only at that height. Plots below describe the correlations in the original data and correlations after omitting all but the selected height.
 
 ### Selecting columns by correlation
-```{r original correlation plot, echo=FALSE, fig.dim=c(7, 7)}
+```{r original correlation plot, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 library(corrplot)
 # Original correlations
 cmData <- cor(npfData)
