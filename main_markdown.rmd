@@ -25,6 +25,9 @@ npf <- read.csv("npf_train.csv")
 # npf.168      - Processed data: Parameters that have different measurement heights have been reduced to height 16.8m
 #                   columns removed: Parameters with height that's not 16.8m
 # npf.168.fact -  Otherwise the same as npf.168, but class2 is a factor
+# npfsp        - Reduced set of explanatory variables, received through running VIF analysis and repeating variable with highest VIF until no variable has a VIF
+#                 higher than 10
+# npfsp.fact   - Otherwise the same as npfsp but class2 is a factor
 
 
 # Create class2, 0 = nonevent, 1 = event
@@ -287,6 +290,86 @@ for(i in 1:dim(npf)[1]){
   }
 mean(predsv==npf$class2)
 exp(-mean(log(perpsv)))
+```
+
+### vif
+```{r vif}
+testmod<-glm(class2~., npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean-UV_B.std-UV_B.mean, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean-UV_B.std-UV_B.mean-RPAR.mean-RPAR.std, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean-UV_B.std-UV_B.mean-RPAR.mean-RPAR.std-NET.mean-NET.std, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean-UV_B.std-UV_B.mean-RPAR.mean-RPAR.std-NET.mean-NET.std-RGlob.std-RGlob.mean, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean-UV_B.std-UV_B.mean-RPAR.mean-RPAR.std-NET.mean-NET.std-RGlob.std-RGlob.mean-CS.mean-CS.std, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+testmod<-glm(class2~.-PAR.mean-PAR.std-UV_A.std-UV_A.mean-Glob.std-Glob.mean-UV_B.std-UV_B.mean-RPAR.mean-RPAR.std-NET.mean-NET.std-RGlob.std-RGlob.mean-CS.mean-CS.std-NOx168.mean-NOx168.std, npf.168,family=binomial(link=logit))
+inflfact<-vif(testmod)
+max(inflfact)
+which(inflfact==max(inflfact))
+
+#Thus, we come up to the following collection of variables
+coefficients(testmod)
+colnames(npf)
+npfsp<-npf.168[,c(1:2,5:6,9:10,13:16,19:20,23:24,27:30,37)]
+colnames(npfsp)
+npfsp.fact<-npfsp
+npfsp.fact[,19]<-as.factor(npfsp.fact[,19)
+```
+
+### PCA
+#PCA for all three versions of data 
+```{r PCA}
+pcaOrig<-prcomp(npfOrig[,5:104],center = T, scale.=T)
+cumsum(pcaOrig$sdev^2)/sum(pcaOrig$sdev^2)
+x1<-as.matrix(npfOrig[,5:104])%*%pcaOrig$rotation[,1:12]
+pca.168<-prcomp(npf.168[,1:36],center = T, scale.=T)
+cumsum(pca.168$sdev^2)/sum(pca.168$sdev^2)
+x2<-as.matrix(npf.168[,1:36])%*%pca.168$rotation[,1:12]
+pca.sp<-prcomp(npfsp[,1:18],center = T, scale.=T)
+cumsum(pca.sp$sdev^2)/sum(pca.sp$sdev^2)
+x3<-as.matrix(npfsp[,1:18])%*%pca.sp$rotation[,1:11]
+```
+
+### Lasso for reduced sets of variables
+```{r lasso2}
+lasso2<-cv.glmnet(x=as.matrix(npf.168[,1:36]),y=class2, alpha=1,family="binomial", type.measure="class")
+lasso3<-cv.glmnet(x=as.matrix(npfsp[,1:18]),y=class2, alpha=1,family="binomial", type.measure="class")
+lassopc1<-cv.glmnet(x=x1,y=class2, alpha=1,family="binomial", type.measure="class")
+lassopc2<-cv.glmnet(x=x2,y=class2, alpha=1,family="binomial", type.measure="class")
+lassopc3<-cv.glmnet(x=x3,y=class2, alpha=1,family="binomial", type.measure="class")
+plot(lasso2)
+plot(lasso3)
+plot(lassopc1)
+plot(lassopc2)
+plot(lassopc3)
 ```
 
 \newpage
