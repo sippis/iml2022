@@ -358,18 +358,60 @@ cumsum(pca.sp$sdev^2)/sum(pca.sp$sdev^2)
 x3<-as.matrix(npfsp[,1:18])%*%pca.sp$rotation[,1:11]
 ```
 
-### Lasso for reduced sets of variables
+### Lasso (first version of final model)
 ```{r lasso2}
-lasso2<-cv.glmnet(x=as.matrix(npf.168[,1:36]),y=class2, alpha=1,family="binomial", type.measure="class")
-lasso3<-cv.glmnet(x=as.matrix(npfsp[,1:18]),y=class2, alpha=1,family="binomial", type.measure="class")
-lassopc1<-cv.glmnet(x=x1,y=class2, alpha=1,family="binomial", type.measure="class")
-lassopc2<-cv.glmnet(x=x2,y=class2, alpha=1,family="binomial", type.measure="class")
-lassopc3<-cv.glmnet(x=x3,y=class2, alpha=1,family="binomial", type.measure="class")
-plot(lasso2)
-plot(lasso3)
-plot(lassopc1)
-plot(lassopc2)
-plot(lassopc3)
+lasso1<-cv.glmnet(x=as.matrix(npfOrig[,5:104]),y=class2, alpha=1,family="binomial", type.measure="class",nfolds=464)
+lassomod1<-glmnet(x=as.matrix(npfOrig[,5:104]),y=class2, alpha=1, lambda = lasso1$lambda.min,family="binomial", type.measure="class")
+preds<-c()
+perps<-c()
+for(i in 1:464){
+  newexp<-npfOrig[-i,]
+  newmod<-glmnet(x=as.matrix(newexp[,5:104]), y=newexp[,105], alpha=1,family="binomial", lambda=lasso1$lambda.min)
+  newprob<-predict(newmod, newx=as.matrix(npfOrig[i,5:104]),type="response")
+  if(class2[i]==1){
+    newperp=log(newprob)
+  } else{
+    newperp=log(1-newprob)
+  }
+  perps<-c(perps,newperp)
+  if(newprob>0.5){
+    newpred<-1
+  } else{
+    newpred<-0
+  }
+  preds<-c(preds, newpred==npfsp$class2[i])
+}
+mean(preds==class2)
+exp(-mean(perps))
+```
+
+### GLM (first version of actual model without usage of PCAs):
+```{r glm2}
+logreg<-glm(class2~., npfsp, family=binomial())
+logreg<-glm(class2~.-O3168.mean-O3168.std, npfsp, family=binomial())
+logreg<-glm(class2~.-O3168.mean-O3168.std-PTG.mean-PTG.std, npfsp, family=binomial())
+logreg<-glm(class2~.-O3168.mean-O3168.std-PTG.mean-PTG.std-Pamb0.mean-H2O168.std-SO2168.mean-SO2168.std-1, npfsp, family=binomial())
+preds<-c()
+perps<-c()
+for(i in 1:464){
+  newexp<-npfsp[-i,]
+  newmod<-glm(class2~.-O3168.mean-O3168.std-PTG.mean-PTG.std-Pamb0.mean-H2O168.std-SO2168.mean-SO2168.std-1, data=npfsp, family=binomial())
+  newprob<-predict(newmod, newdata=npfsp[i,],type="response")
+  if(class2[i]==1){
+    newperp=log(newprob)
+  } else{
+    newperp=log(1-newprob)
+  }
+  perps<-c(perps,newperp)
+  if(newprob>0.5){
+    newpred<-1
+  } else{
+    newpred<-0
+  }
+  preds<-c(preds, newpred==npfsp$class2[i])
+}
+mean(preds)
+exp(-mean(perps))
 ```
 
 \newpage
