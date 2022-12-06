@@ -414,6 +414,29 @@ mean(preds)
 exp(-mean(perps))
 ```
 
+### SVM (first version of actual model)
+```{r svm2}
+tc<-tune.control(cross=464)
+tuner<-tune(svm,class2~., data=npf.168.fact, kernel="linear",type="C", ranges = list (cost = seq(0.01,0.05,0.01)), tunecontrol = tc)
+bpam<-tuner$best.parameters
+preds<-c()
+perps<-c()
+for(i in 1:464){
+  newexp<-npf.168[-i,]
+  newmod<-svm(class2~., newexp,kernel="linear",cost=bpam[1,1],scale=F, probability=T, type="C")
+  newprob<-predict(newmod, newdata=npf.168[i,1:36],probability=T)
+  if(class2[i]==1){
+    newperp<-attr(newprob, "probabilities")[1,1]
+  } else{
+    newperp<-attr(newprob, "probabilities")[1,2]
+  }
+  perps<-c(perps,log(newperp))
+  preds<-c(preds, newprob[1])
+}
+mean((preds-1)==class2)
+exp(-mean(perps))
+```
+
 \newpage
 
 # Preprocessing data
