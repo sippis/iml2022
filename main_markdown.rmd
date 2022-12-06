@@ -422,9 +422,9 @@ bpam<-tuner$best.parameters
 preds<-c()
 perps<-c()
 for(i in 1:464){
-  newexp<-npf.168[-i,]
+  newexp<-npf.168.fact[-i,]
   newmod<-svm(class2~., newexp,kernel="linear",cost=bpam[1,1],scale=F, probability=T, type="C")
-  newprob<-predict(newmod, newdata=npf.168[i,1:36],probability=T)
+  newprob<-predict(newmod, newdata=npf.168.fact[i,1:36],probability=T)
   if(class2[i]==1){
     newperp<-attr(newprob, "probabilities")[1,1]
   } else{
