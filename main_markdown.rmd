@@ -328,89 +328,411 @@ x2 <- as.matrix(npf.168[,1:36])%*%pca.168$rotation[,1:12]
 pca.sp <- prcomp(npfsp[,1:18], center = T, scale. = T)
 cumsum(pca.sp$sdev^2)/sum(pca.sp$sdev^2)
 x3 <- as.matrix(npfsp[,1:18])%*%pca.sp$rotation[,1:11]
+
+npf.pca <- as.data.frame(cbind(x1, npf$class2))
+colnames(npf.pca) <- c(colnames(x1), "class2")
+npf.168.pca <- as.data.frame(cbind(x2, npf.168$class2))
+colnames(npf.168.pca) <- c(colnames(x2), "class2")
 ```
 
 # Classifiers
 
-## Testing classifiers as they are
+## Naive Bayes, LDA and QDA on the original data, 168-data and the PCA'd versions of these data sets
 
 ### Naive Bayes
 
 ```{r naive bayes}
 library(e1071)
-nb.fit <- naiveBayes(class2 ~ . , data = npf_train, laplace = 1)
+
+# Alkuperäinen data
+nb.fit <- naiveBayes(class2 ~ . , data = npf_train)
 nb.pred.cv <- cv.prob(class2 ~ ., npf, naiveBayes) # Hidas prosessi, tehdään siksi vaan kerran
+nb.pred.loocv <- loocv.prob(class2 ~ ., npf, naiveBayes) # Sama
 
 nb_acc <- data.frame(train = accuracy(predict(nb.fit, newdata = npf_train, type = "raw")[,2], npf_train$class2),
                      test = accuracy(predict(nb.fit, newdata = npf_test, type = "raw")[,2], npf_test$class2),
-                     CV = accuracy(nb.pred.cv, npf$class2))
-# Kaikkiin tulee Inf
+                     CV = accuracy(nb.pred.cv, npf$class2),
+                     LOOCV = accuracy(nb.pred.loocv, npf$class2))
+
 nb_perp <- data.frame(train = perplexity(predict(nb.fit, newdata = npf_train, type = "raw")[,2], npf_train$class2),
                       test = perplexity(predict(nb.fit, newdata = npf_test, type = "raw")[,2], npf_test$class2),
-                      CV = perplexity(nb.pred.cv, npf$class2))
+                      CV = perplexity(nb.pred.cv, npf$class2),
+                      LOOCV = perplexity(nb.pred.loocv, npf$class2))
 kable(cbind(nb_acc,
             nb_perp)) %>%
-  add_header_above(c("Accuracy" = 3, "Perplexity" = 3)) %>%
+  add_header_above(c("Accuracy" = 4, "Perplexity" = 4)) %>%
   kable_styling(latex_options = "HOLD_position")
+
+# 168-data
+nb.pred.cv.168 <- cv.prob(class2 ~ ., npf.168, naiveBayes) # Hidas prosessi, tehdään siksi vaan kerran
+nb.pred.loocv.168 <- loocv.prob(class2 ~ ., npf.168, naiveBayes) # Sama
+
+nb_acc.168 <- data.frame(CV = accuracy(nb.pred.cv.168, npf.168$class2),
+                         LOOCV = accuracy(nb.pred.loocv.168, npf.168$class2))
+
+nb_perp.168 <- data.frame(CV = perplexity(nb.pred.cv.168, npf.168$class2),
+                          LOOCV = perplexity(nb.pred.loocv.168, npf.168$class2))
+kable(cbind(nb_acc.168,
+            nb_perp.168)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2)) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+
+```
+
+Using PCA on the original and the 16.8m-dataset.
+
+```{r naive bayes pca}
+
+# Alkuperäinen data
+nb.pred.cv.pca <- cv.prob(class2 ~ ., npf.pca, naiveBayes) # Hidas prosessi, tehdään siksi vaan kerran
+nb.pred.loocv.pca <- loocv.prob(class2 ~ ., npf.pca, naiveBayes) # Sama
+
+nb_acc.pca <- data.frame(CV = accuracy(nb.pred.cv.pca, npf.pca$class2),
+                         LOOCV = accuracy(nb.pred.loocv.pca, npf.pca$class2))
+
+nb_perp.pca <- data.frame(CV = perplexity(nb.pred.cv.pca, npf.pca$class2),
+                          LOOCV = perplexity(nb.pred.loocv.pca, npf.pca$class2))
+kable(cbind(nb_acc.pca,
+            nb_perp.pca)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2)) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+# 168-data
+nb.pred.cv.168.pca <- cv.prob(class2 ~ ., npf.168.pca, naiveBayes) # Hidas prosessi, tehdään siksi vaan kerran
+nb.pred.loocv.168.pca <- loocv.prob(class2 ~ ., npf.168.pca, naiveBayes) # Sama
+
+nb_acc.168.pca <- data.frame(CV = accuracy(nb.pred.cv.168, npf.168.pca$class2),
+                     LOOCV = accuracy(nb.pred.loocv.168, npf.168.pca$class2))
+
+nb_perp.168.pca <- data.frame(CV = perplexity(nb.pred.cv.168, npf.168.pca$class2),
+                      LOOCV = perplexity(nb.pred.loocv.168, npf.168.pca$class2))
+kable(cbind(nb_acc.168.pca,
+            nb_perp.168.pca)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2)) %>%
+  kable_styling(latex_options = "HOLD_position")
+
 ```
 
 ### LDA
-```{r lda}
+
+On the original dataset and the 16.8m-dataset.
+```{r lda, warning=FALSE}
 library(MASS)
-lda.fit <- lda(class2 ~ . , data = npf_train)
+
 # Cross-validation parametrit
 n = nrow(npf) # number of rows in the data matrix
 k = min(n, 10) # number of cross-validation folds
 split = kpart(n, k) # the split of n data items into k folds
+
 lda.pred.cv <- rep(0,n)
+lda.pred.cv.168 <- rep(0,n)
 
 # cv
 for (i in 1:k) {
   ## go through all folds, train on other folds, and make a prediction
   mod <- lda(class2 ~ ., npf[split != i, ])
   lda.pred.cv[split == i] <- predict(mod, npf[split == i, ])$posterior[,2]
+  ## 168
+  mod <- lda(class2 ~ ., npf.168[split != i, ])
+  lda.pred.cv.168[split == i] <- predict(mod, npf.168[split == i, ])$posterior[,2]
 }
-lda_acc <- data.frame(train = accuracy(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
-                      test = accuracy(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
-                      CV = accuracy(lda.pred.cv, npf$class2))
-lda_perp <- data.frame(train = perplexity(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
-                      test = perplexity(predict(lda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
-                      CV = perplexity(lda.pred.cv, npf$class2))
+
+lda.pred.loocv <- rep(0,n)
+lda.pred.loocv.168 <- rep(0,n)
+
+# loocv
+for(i in 1:dim(npf)[1]){
+  mod <- lda(class2 ~ ., npf[-i, ])
+  lda.pred.loocv[i] <- predict(mod, npf[i, ])$posterior[,2]
+  ## 168
+  mod <- lda(class2 ~ ., npf.168[-i, ])
+  lda.pred.loocv.168[i] <- predict(mod, npf.168[i, ])$posterior[,2]
+}
+
+# npf
+lda_acc <- data.frame(CV = accuracy(lda.pred.cv, npf$class2),
+                      LOOCV = accuracy(lda.pred.loocv, npf$class2))
+lda_perp <- data.frame(CV = perplexity(lda.pred.cv, npf$class2),
+                       LOOCV = perplexity(lda.pred.loocv, npf$class2))
 kable(cbind(lda_acc,
             lda_perp)) %>%
-  add_header_above(c("Accuracy" = 3, "Perplexity" = 3))%>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
+  kable_styling(latex_options = "HOLD_position")
+
+# 168
+lda_acc.168 <- data.frame(CV = accuracy(lda.pred.cv.168, npf$class2),
+                          LOOCV = accuracy(lda.pred.loocv.168, npf$class2))
+lda_perp.168 <- data.frame(CV = perplexity(lda.pred.cv.168, npf$class2),
+                           LOOCV = perplexity(lda.pred.loocv.168, npf$class2))
+kable(cbind(lda_acc.168,
+            lda_perp.168)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
   kable_styling(latex_options = "HOLD_position")
 ```
 
-### QDA
-```{r qda}
-library(MASS)
-qda.fit <- qda(class2 ~ . , data = npf_train)
+Using PCA on the original and the 16.8m-dataset.
+
+```{r lda pca, warning=FALSE}
+
 # Cross-validation parametrit
 n = nrow(npf) # number of rows in the data matrix
 k = min(n, 10) # number of cross-validation folds
 split = kpart(n, k) # the split of n data items into k folds
+
+lda.pred.cv.pca <- rep(0,n)
+lda.pred.cv.168.pca <- rep(0,n)
+
+# cv
+for (i in 1:k) {
+  ## go through all folds, train on other folds, and make a prediction
+  mod <- lda(class2 ~ ., npf.pca[split != i, ])
+  lda.pred.cv.pca[split == i] <- predict(mod, npf.pca[split == i, ])$posterior[,2]
+  ## 168
+  mod <- lda(class2 ~ ., npf.168.pca[split != i, ])
+  lda.pred.cv.168.pca[split == i] <- predict(mod, npf.168.pca[split == i, ])$posterior[,2]
+}
+
+lda.pred.loocv.pca <- rep(0,n)
+lda.pred.loocv.168.pca <- rep(0,n)
+
+# loocv
+for(i in 1:dim(npf)[1]){
+  mod <- lda(class2 ~ ., npf.pca[-i, ])
+  lda.pred.loocv.pca[i] <- predict(mod, npf.pca[i, ])$posterior[,2]
+  ## 168
+  mod <- lda(class2 ~ ., npf.168.pca[-i, ])
+  lda.pred.loocv.168.pca[i] <- predict(mod, npf.168.pca[i, ])$posterior[,2]
+}
+
+# npf
+lda_acc.pca <- data.frame(CV = accuracy(lda.pred.cv.pca, npf.pca$class2),
+                          LOOCV = accuracy(lda.pred.loocv.pca, npf.pca$class2))
+lda_perp.pca <- data.frame(CV = perplexity(lda.pred.cv.pca, npf.pca$class2),
+                           LOOCV = perplexity(lda.pred.loocv.pca, npf.pca$class2))
+kable(cbind(lda_acc.pca,
+            lda_perp.pca)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
+  kable_styling(latex_options = "HOLD_position")
+
+# 168
+lda_acc.168.pca <- data.frame(CV = accuracy(lda.pred.cv.168.pca, npf.168.pca$class2),
+                              LOOCV = accuracy(lda.pred.loocv.168.pca, npf.168.pca$class2))
+lda_perp.168.pca <- data.frame(CV = perplexity(lda.pred.cv.168.pca, npf.168.pca$class2),
+                               LOOCV = perplexity(lda.pred.loocv.168.pca, npf.168.pca$class2))
+kable(cbind(lda_acc.168.pca,
+            lda_perp.168.pca)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+### QDA
+```{r qda, warning=FALSE}
+library(MASS)
+
+# Cross-validation parametrit
+n = nrow(npf) # number of rows in the data matrix
+k = min(n, 10) # number of cross-validation folds
+split = kpart(n, k) # the split of n data items into k folds
+
 qda.pred.cv <- rep(0,n)
+qda.pred.cv.168 <- rep(0,n)
 
 # cv
 for (i in 1:k) {
   ## go through all folds, train on other folds, and make a prediction
   mod <- qda(class2 ~ ., npf[split != i, ])
   qda.pred.cv[split == i] <- predict(mod, npf[split == i, ])$posterior[,2]
+  ## 168
+  mod <- qda(class2 ~ ., npf.168[split != i, ])
+  qda.pred.cv.168[split == i] <- predict(mod, npf.168[split == i, ])$posterior[,2]
 }
-qda_acc <- data.frame(train = accuracy(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
-                      test = accuracy(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
-                      CV = accuracy(qda.pred.cv, npf$class2))
-# Taas Inf :(
-qda_perp <- data.frame(train = perplexity(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_train$class2),
-                      test = perplexity(predict(qda.fit, newdata = npf_train)$posterior[,2], npf_test$class2),
-                      CV = perplexity(qda.pred.cv, npf$class2))
+
+qda.pred.loocv <- rep(0,n)
+qda.pred.loocv.168 <- rep(0,n)
+
+# loocv
+for(i in 1:dim(npf)[1]){
+  mod <- qda(class2 ~ ., npf[-i, ])
+  qda.pred.loocv[i] <- predict(mod, npf[i, ])$posterior[,2]
+  ## 168
+  mod <- qda(class2 ~ ., npf.168[-i, ])
+  qda.pred.loocv.168[i] <- predict(mod, npf.168[i, ])$posterior[,2]
+}
+
+# npf
+qda_acc <- data.frame(CV = accuracy(qda.pred.cv, npf$class2),
+                      LOOCV = accuracy(qda.pred.loocv, npf$class2))
+qda_perp <- data.frame(CV = perplexity(qda.pred.cv, npf$class2),
+                       LOOCV = perplexity(qda.pred.loocv, npf$class2))
 kable(cbind(qda_acc,
             qda_perp)) %>%
-  add_header_above(c("Accuracy" = 3, "Perplexity" = 3)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
+  kable_styling(latex_options = "HOLD_position")
+
+# 168
+qda_acc.168 <- data.frame(CV = accuracy(qda.pred.cv.168, npf$class2),
+                          LOOCV = accuracy(qda.pred.loocv.168, npf$class2))
+qda_perp.168 <- data.frame(CV = perplexity(qda.pred.cv.168, npf$class2),
+                           LOOCV = perplexity(qda.pred.loocv.168, npf$class2))
+kable(cbind(qda_acc.168,
+            qda_perp.168)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
   kable_styling(latex_options = "HOLD_position")
 ```
 
+Using PCA on the original and the 16.8m-dataset.
+
+```{r qda pca, warning=FALSE}
+
+# Cross-validation parametrit
+n = nrow(npf) # number of rows in the data matrix
+k = min(n, 10) # number of cross-validation folds
+split = kpart(n, k) # the split of n data items into k folds
+
+qda.pred.cv.pca <- rep(0,n)
+qda.pred.cv.168.pca <- rep(0,n)
+
+# cv
+for (i in 1:k) {
+  ## go through all folds, train on other folds, and make a prediction
+  mod <- qda(class2 ~ ., npf.pca[split != i, ])
+  qda.pred.cv.pca[split == i] <- predict(mod, npf.pca[split == i, ])$posterior[,2]
+  ## 168
+  mod <- qda(class2 ~ ., npf.168.pca[split != i, ])
+  qda.pred.cv.168.pca[split == i] <- predict(mod, npf.168.pca[split == i, ])$posterior[,2]
+}
+
+qda.pred.loocv.pca <- rep(0,n)
+qda.pred.loocv.168.pca <- rep(0,n)
+
+# loocv
+for(i in 1:dim(npf)[1]){
+  mod <- qda(class2 ~ ., npf.pca[-i, ])
+  qda.pred.loocv.pca[i] <- predict(mod, npf.pca[i, ])$posterior[,2]
+  ## 168
+  mod <- qda(class2 ~ ., npf.168.pca[-i, ])
+  qda.pred.loocv.168.pca[i] <- predict(mod, npf.168.pca[i, ])$posterior[,2]
+}
+
+# npf
+qda_acc.pca <- data.frame(CV = accuracy(qda.pred.cv.pca, npf.pca$class2),
+                          LOOCV = accuracy(qda.pred.loocv.pca, npf.pca$class2))
+qda_perp.pca <- data.frame(CV = perplexity(qda.pred.cv.pca, npf.pca$class2),
+                           LOOCV = perplexity(qda.pred.loocv.pca, npf.pca$class2))
+kable(cbind(qda_acc.pca,
+            qda_perp.pca)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
+  kable_styling(latex_options = "HOLD_position")
+
+# 168
+qda_acc.168.pca <- data.frame(CV = accuracy(qda.pred.cv.168.pca, npf.168.pca$class2),
+                              LOOCV = accuracy(qda.pred.loocv.168.pca, npf.168.pca$class2))
+qda_perp.168.pca <- data.frame(CV = perplexity(qda.pred.cv.168.pca, npf.168.pca$class2),
+                               LOOCV = perplexity(qda.pred.loocv.168.pca, npf.168.pca$class2))
+kable(cbind(qda_acc.168.pca,
+            qda_perp.168.pca)) %>%
+  add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
+  kable_styling(latex_options = "HOLD_position")
+```
+## Multiple classes
+
+### Naive Bayes on the npf-dataset
+
+```{r naive bayes multiclass, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.class4 <- npf[,1:100]
+npf.class4$class4 <- npfOrig$class4
+
+
+multinb.pred.loocv <- rep(0,nrow(npf.class4))
+
+# loocv
+for(i in 1:dim(npf.class4)[1]){
+  mod <- naiveBayes(class4 ~ ., npf.class4[-i, ])
+  multinb.pred.loocv[i] <- predict(mod, npf.class4[i, ])
+}
+
+multinb.pred.loocv[multinb.pred.loocv == 1] <- "Ia"
+multinb.pred.loocv[multinb.pred.loocv == 2] <- "Ib"
+multinb.pred.loocv[multinb.pred.loocv == 3] <- "II"
+multinb.pred.loocv[multinb.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multinb.pred.loocv == npf.class4$class4))
+```
+### LDA on the npf.168-dataset
+
+```{r lda multiclass, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.168.class4 <- npf.168[,1:36]
+npf.168.class4$class4 <- npfOrig$class4
+
+
+multilda.pred.loocv <- rep(0,nrow(npf.168.class4))
+
+# loocv
+for(i in 1:dim(npf.168.class4)[1]){
+  mod <- lda(class4 ~ ., npf.168.class4[-i, ])
+  multilda.pred.loocv[i] <- predict(mod, npf.168.class4[i, ])$class
+}
+
+multilda.pred.loocv[multilda.pred.loocv == 1] <- "Ia"
+multilda.pred.loocv[multilda.pred.loocv == 2] <- "Ib"
+multilda.pred.loocv[multilda.pred.loocv == 3] <- "II"
+multilda.pred.loocv[multilda.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multilda.pred.loocv == npf.168.class4$class4))
+```
+
+### QDA on the npf.pca-dataset
+
+```{r qda multiclass, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.pca.class4 <- npf.pca[,1:12]
+npf.pca.class4$class4 <- npfOrig$class4
+
+multiqda.pred.loocv <- rep(0,nrow(npf.pca.class4))
+
+# loocv
+for(i in 1:dim(npf.pca.class4)[1]){
+  mod <- qda(class4 ~ ., npf.pca.class4[-i, ])
+  multiqda.pred.loocv[i] <- predict(mod, npf.pca.class4[i, ])$class
+}
+
+multiqda.pred.loocv[multiqda.pred.loocv == 1] <- "Ia"
+multiqda.pred.loocv[multiqda.pred.loocv == 2] <- "Ib"
+multiqda.pred.loocv[multiqda.pred.loocv == 3] <- "II"
+multiqda.pred.loocv[multiqda.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multiqda.pred.loocv == npf.pca.class4$class4))
+```
+
+### QDA on the npf.168.pca-dataset
+
+```{r qda multiclass 168, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.168.pca.class4 <- npf.168.pca[,1:12]
+npf.168.pca.class4$class4 <- npfOrig$class4
+
+multiqda.pred.loocv <- rep(0,nrow(npf.168.pca.class4))
+
+# loocv
+for(i in 1:dim(npf.168.pca.class4)[1]){
+  mod <- qda(class4 ~ ., npf.168.pca.class4[-i, ])
+  multiqda.pred.loocv[i] <- predict(mod, npf.168.pca.class4[i, ])$class
+}
+
+multiqda.pred.loocv[multiqda.pred.loocv == 1] <- "Ia"
+multiqda.pred.loocv[multiqda.pred.loocv == 2] <- "Ib"
+multiqda.pred.loocv[multiqda.pred.loocv == 3] <- "II"
+multiqda.pred.loocv[multiqda.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multiqda.pred.loocv == npf.168.pca.class4$class4))
+```
 ### GLM
 ```{r glm, warning=FALSE, fig.height=4}
 mod1<-glm(class2~., npf, family=binomial(link="logit"))
