@@ -368,10 +368,10 @@ nb.pred.cv.168 <- cv.prob(class2 ~ ., npf.168, naiveBayes) # Hidas prosessi, teh
 nb.pred.loocv.168 <- loocv.prob(class2 ~ ., npf.168, naiveBayes) # Sama
 
 nb_acc.168 <- data.frame(CV = accuracy(nb.pred.cv.168, npf.168$class2),
-                     LOOCV = accuracy(nb.pred.loocv.168, npf.168$class2))
+                         LOOCV = accuracy(nb.pred.loocv.168, npf.168$class2))
 
 nb_perp.168 <- data.frame(CV = perplexity(nb.pred.cv.168, npf.168$class2),
-                      LOOCV = perplexity(nb.pred.loocv.168, npf.168$class2))
+                          LOOCV = perplexity(nb.pred.loocv.168, npf.168$class2))
 kable(cbind(nb_acc.168,
             nb_perp.168)) %>%
   add_header_above(c("Accuracy" = 2, "Perplexity" = 2)) %>%
@@ -443,11 +443,11 @@ lda.pred.loocv.168 <- rep(0,n)
 
 # loocv
 for(i in 1:dim(npf)[1]){
-  mod <- lda(class2 ~ ., npf[split != i, ])
-  lda.pred.loocv[split == i] <- predict(mod, npf[split == i, ])$posterior[,2]
+  mod <- lda(class2 ~ ., npf[-i, ])
+  lda.pred.loocv[i] <- predict(mod, npf[i, ])$posterior[,2]
   ## 168
-  mod <- lda(class2 ~ ., npf.168[split != i, ])
-  lda.pred.loocv.168[split == i] <- predict(mod, npf.168[split == i, ])$posterior[,2]
+  mod <- lda(class2 ~ ., npf.168[-i, ])
+  lda.pred.loocv.168[i] <- predict(mod, npf.168[i, ])$posterior[,2]
 }
 
 # npf
@@ -498,11 +498,11 @@ lda.pred.loocv.168.pca <- rep(0,n)
 
 # loocv
 for(i in 1:dim(npf)[1]){
-  mod <- lda(class2 ~ ., npf.pca[split != i, ])
-  lda.pred.loocv.pca[split == i] <- predict(mod, npf.pca[split == i, ])$posterior[,2]
+  mod <- lda(class2 ~ ., npf.pca[-i, ])
+  lda.pred.loocv.pca[i] <- predict(mod, npf.pca[i, ])$posterior[,2]
   ## 168
-  mod <- lda(class2 ~ ., npf.168.pca[split != i, ])
-  lda.pred.loocv.168.pca[split == i] <- predict(mod, npf.168.pca[split == i, ])$posterior[,2]
+  mod <- lda(class2 ~ ., npf.168.pca[-i, ])
+  lda.pred.loocv.168.pca[i] <- predict(mod, npf.168.pca[i, ])$posterior[,2]
 }
 
 # npf
@@ -553,11 +553,11 @@ qda.pred.loocv.168 <- rep(0,n)
 
 # loocv
 for(i in 1:dim(npf)[1]){
-  mod <- qda(class2 ~ ., npf[split != i, ])
-  qda.pred.loocv[split == i] <- predict(mod, npf[split == i, ])$posterior[,2]
+  mod <- qda(class2 ~ ., npf[-i, ])
+  qda.pred.loocv[i] <- predict(mod, npf[i, ])$posterior[,2]
   ## 168
-  mod <- qda(class2 ~ ., npf.168[split != i, ])
-  qda.pred.loocv.168[split == i] <- predict(mod, npf.168[split == i, ])$posterior[,2]
+  mod <- qda(class2 ~ ., npf.168[-i, ])
+  qda.pred.loocv.168[i] <- predict(mod, npf.168[i, ])$posterior[,2]
 }
 
 # npf
@@ -608,11 +608,11 @@ qda.pred.loocv.168.pca <- rep(0,n)
 
 # loocv
 for(i in 1:dim(npf)[1]){
-  mod <- qda(class2 ~ ., npf.pca[split != i, ])
-  qda.pred.loocv.pca[split == i] <- predict(mod, npf.pca[split == i, ])$posterior[,2]
+  mod <- qda(class2 ~ ., npf.pca[-i, ])
+  qda.pred.loocv.pca[i] <- predict(mod, npf.pca[i, ])$posterior[,2]
   ## 168
-  mod <- qda(class2 ~ ., npf.168.pca[split != i, ])
-  qda.pred.loocv.168.pca[split == i] <- predict(mod, npf.168.pca[split == i, ])$posterior[,2]
+  mod <- qda(class2 ~ ., npf.168.pca[-i, ])
+  qda.pred.loocv.168.pca[i] <- predict(mod, npf.168.pca[i, ])$posterior[,2]
 }
 
 # npf
@@ -635,7 +635,104 @@ kable(cbind(qda_acc.168.pca,
   add_header_above(c("Accuracy" = 2, "Perplexity" = 2))%>%
   kable_styling(latex_options = "HOLD_position")
 ```
+## Multiple classes
 
+### Naive Bayes on the npf-dataset
+
+```{r naive bayes multiclass, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.class4 <- npf[,1:100]
+npf.class4$class4 <- npfOrig$class4
+
+
+multinb.pred.loocv <- rep(0,nrow(npf.class4))
+
+# loocv
+for(i in 1:dim(npf.class4)[1]){
+  mod <- naiveBayes(class4 ~ ., npf.class4[-i, ])
+  multinb.pred.loocv[i] <- predict(mod, npf.class4[i, ])
+}
+
+multinb.pred.loocv[multinb.pred.loocv == 1] <- "Ia"
+multinb.pred.loocv[multinb.pred.loocv == 2] <- "Ib"
+multinb.pred.loocv[multinb.pred.loocv == 3] <- "II"
+multinb.pred.loocv[multinb.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multinb.pred.loocv == npf.class4$class4))
+```
+### LDA on the npf.168-dataset
+
+```{r lda multiclass, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.168.class4 <- npf.168[,1:36]
+npf.168.class4$class4 <- npfOrig$class4
+
+
+multilda.pred.loocv <- rep(0,nrow(npf.168.class4))
+
+# loocv
+for(i in 1:dim(npf.168.class4)[1]){
+  mod <- lda(class4 ~ ., npf.168.class4[-i, ])
+  multilda.pred.loocv[i] <- predict(mod, npf.168.class4[i, ])$class
+}
+
+multilda.pred.loocv[multilda.pred.loocv == 1] <- "Ia"
+multilda.pred.loocv[multilda.pred.loocv == 2] <- "Ib"
+multilda.pred.loocv[multilda.pred.loocv == 3] <- "II"
+multilda.pred.loocv[multilda.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multilda.pred.loocv == npf.168.class4$class4))
+```
+
+### QDA on the npf.pca-dataset
+
+```{r qda multiclass, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.pca.class4 <- npf.pca[,1:12]
+npf.pca.class4$class4 <- npfOrig$class4
+
+multiqda.pred.loocv <- rep(0,nrow(npf.pca.class4))
+
+# loocv
+for(i in 1:dim(npf.pca.class4)[1]){
+  mod <- qda(class4 ~ ., npf.pca.class4[-i, ])
+  multiqda.pred.loocv[i] <- predict(mod, npf.pca.class4[i, ])$class
+}
+
+multiqda.pred.loocv[multiqda.pred.loocv == 1] <- "Ia"
+multiqda.pred.loocv[multiqda.pred.loocv == 2] <- "Ib"
+multiqda.pred.loocv[multiqda.pred.loocv == 3] <- "II"
+multiqda.pred.loocv[multiqda.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multiqda.pred.loocv == npf.pca.class4$class4))
+```
+
+### QDA on the npf.168.pca-dataset
+
+```{r qda multiclass 168, warning=FALSE, fig.height=4}
+
+# Use class4 instead of class2
+npf.168.pca.class4 <- npf.168.pca[,1:12]
+npf.168.pca.class4$class4 <- npfOrig$class4
+
+multiqda.pred.loocv <- rep(0,nrow(npf.168.pca.class4))
+
+# loocv
+for(i in 1:dim(npf.168.pca.class4)[1]){
+  mod <- qda(class4 ~ ., npf.168.pca.class4[-i, ])
+  multiqda.pred.loocv[i] <- predict(mod, npf.168.pca.class4[i, ])$class
+}
+
+multiqda.pred.loocv[multiqda.pred.loocv == 1] <- "Ia"
+multiqda.pred.loocv[multiqda.pred.loocv == 2] <- "Ib"
+multiqda.pred.loocv[multiqda.pred.loocv == 3] <- "II"
+multiqda.pred.loocv[multiqda.pred.loocv == 4] <- "nonevent"
+
+mean(as.numeric(multiqda.pred.loocv == npf.168.pca.class4$class4))
+```
 ### GLM
 ```{r glm, warning=FALSE, fig.height=4}
 mod1<-glm(class2~., npf, family=binomial(link="logit"))
