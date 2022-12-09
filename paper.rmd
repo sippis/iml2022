@@ -25,19 +25,168 @@ npfData <- npfOrig[, -(1:4)]
 
 # Introduction
 
-In this project we trained a classifier on a data set of atmospheric measurements. The task is to predict whether new particle formation (NPF) happens or not on a given day based on the atmospheric data.
+In this project we trained a classifier on a data set of atmospheric measurements. The task is to predict whether new particle formation (NPF) happens or not on a given day based on the atmospheric data. We ran several different kinds of models, assessed through accuracy and perplexity calculations which of these models performed the best, and discuss the results of our analyses.
 
 # Preprocessing of the data
 
 ## Initial data analysis
 
-The training data consists of several variables measured on 464 non-consecutive days. The variables are daily means and standard deviations of measurements such as carbon dioxide concentration, solar radiation and air temperature. Some of the variables are of the same phenomenon measured at different heights. 
+The goal of this assignment is to predict the behavior of a multinomially distributed variable "class4", which describes new particle formation events on specific observation days. The variable is treated as a multinomial variable divided into four separate groups: no new particle formation (referred to in the dataset as "nonevent"), very clear and strong particle formation events (referred to in the dataset as class "Ia"), other particle formation events where the growth and formation rate could be determined with a sufficiently good confidence level (referred to in the dataset as class "Ib") and particle formation events where growth and formation rates could either not be defined or there was a possibility that the assessed rates were not sufficiently accurate. For the most part, we are observing a simpler version of this variable instead in the form of a binomial variable, let's refer to that as "class2", which is simply divided into no new particle formation events happening and new particle formation events happening.
 
-Many classifiers are affected by correlation and colinearity between variables. As expected, we found that many of the variables describing the same phenomenon are correlated, as are variables related to radiation (see figure below). We take a more detailed look into this in the section *Correlation between parameters*.
+Our dataset includes 464 observations of this variable as well as corresponding observations to a collection of 103 other variables. These variables include 50 numeric variables which describe the mean measurement related to phenomenona such as carbon dioxide concentration, solar radiation and air temperature during a measurement day, 50 numeric variables which describe the corresponding standard deviations to these measurements for those same measurement days, an id listing which runs from 1 to 464, the date of each measurement as well as a logical variable describing whether the other measurements are partly bad. We also notice that some of the 50 types of measurements for which means and standard deviations are calculated are in fact related to the same phenomena but are simply measured at different points. For example, one of the measurements is the amount of carbon dioxide but this is measured at four different heights.
 
+In order to get a preliminary idea of what we are dealing with, let's visualize some of the variables we're observing as well as calculate some very simple measurements of these variables. First, let's download the dataset, define the binomial variable and observe how many of the observation of "class4" fall into specific classes.
+
+```{r}
+npf<-read.csv("C:\\Users\\pyrys\\Downloads\\Koulujuttuja\\IntroMachineLearning\\npf_train.csv")
+npf$class2<-npf$class4!="nonevent"
+print(paste0("Relative amount of observations in class nonevent: ",mean(npf$class4=="nonevent")))
+print(paste0("Relative amount of observations in class Ia: ",mean(npf$class4=="Ia")))
+print(paste0("Relative amount of observations in class Ib: ",mean(npf$class4=="Ib")))
+print(paste0("Relative amount of observations in class II: ",mean(npf$class4=="II")))
+```
+
+We observe that half of our observations are days with no new particle formation events, implying that half our observations are days with new particle formation events. Out of the classes related to days with new particle formation events, class I type events are more common than class II type events but class II type events are more common than either class Ia or class Ib type events. And within class type I events, we have more observations of class Ib type events than class Ia type events.
+
+Let's also calculate basic summary statistics for the other measurements
+
+```{r}
+summary(npf)
+```
+
+Of particular interest here is that the variable "partlybad" seems to have only observations of type "FALSE". As a result, we can remove it from the dataset as it gives no extra information. We can also remove the variable id, as the order of the observations is not of interest in our analysis. And on top of this, it is unlikely that we will use the specific dates in relation to the observations either, so we will simply shift that information to be the rownames for the data.
+
+```{r}
+rownames(npf)<-npf[,2]
+npf<-npf[,-c(1,2,4)]
+```
+
+Now we are left with our variable of interest, as well as 100 explanatory variables.
+
+%Mitä teemme tälle, haluammeko viitata tähän visualisointien ja nimien suhteen vai onko ideaalia, että teemme omat visualisointimme, jotka esittelemme tekstissä?
 We also familiarized ourselves with the data through the [smear.avaa.scs.fi](https://smear.avaa.csc.fi/) webpage that offers further visualizations details about the data and the measurement site, and with the variable names and details available at [wiki.helsinki.fi](https://wiki.helsinki.fi/pages/viewpage.action?pageId=243959901).
 
+Let's next visualize some our explanatory variables via boxplots and scatterplots to get a deeper understanding of them. For the sake of simplicity, these visualizations grouped by the phenomena being measured. In order to also prelminarily look at how these variables behave in relation to new particle formation events, we'll also look at said measurements behave in relation to variable "class4". In terms of the boxplots, the boxplots are divided into groups by variable class4, and in terms of the scatterplots, the following colors represent different classes: red represents nonevent days, blue represents days with type Ia NPF events, green represents days with type Ib NPF events and black represents days with type II NPF events:
+```{r}
+cols<-c()
+for(i in 1:464){
+  if(npf$class4[i]=="nonevent"){
+    cols<-c(cols,"red")
+  } else if (npf$class4[i]=="Ia"){
+    cols<-c(cols,"blue")
+  } else if (npf$class4[i]=="Ib"){
+    cols<-c(cols,"green")
+  } else {
+    cols<-c(cols, "black")
+  }
+}
+par(mfrow=c(2,4))
+for(i in 2:9){
+plot(1:464,npf[,i],col=cols,main = colnames(npf)[i])
+}
+for(i in 2:9){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(1,2))
+for(i in 10:11){
+plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 10:11){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(3,4))
+for(i in 12:23){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 12:23){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(1,2))
+for(i in 24:25){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 24:25){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(3,4))
+for(i in 26:37){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 26:37){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(3,4))
+for(i in 38:49){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 38:49){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(2,5))
+for(i in 50:59){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 50:59){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(2,4))
+for(i in 60:67){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 60:67){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(3,4))
+for(i in 68:79){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 68:79){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(3,2))
+for(i in 80:85){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 80:85){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(2,5))
+for(i in 86:95){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 86:95){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(2,2))
+for(i in 96:99){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 96:99){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+par(mfrow=c(1,2))
+for(i in 100:101){
+  plot(1:464,npf[,i],col=cols,main=colnames(npf)[i])
+}
+for(i in 100:101){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+```
+
+In particular we notice that with several of the variables the boxplots for the nonevent group observations differ more from the observations for days with NPF events than the boxplots for the different NPF event groups both in terms of smaller or higher values but also spanning larger intervals (although this can partially be caused by there being observations within this group). Another notable thing is that the measurements of the same variables at different heights behave very similarly, which imply correlation between them (we take a more detailed look into this in the section *Correlation between parameters*). We also notice a few interesting sets of variables, such as nitrogen monoxide (measurements NO), potential temperature gradient (measurements PTG), rain indicator signal (measurements SWS), sulphur dioxide concentration (measurements SO2) and (measurements CS), which seem to mostly have very small standard deviations. This would imply that the shifts during the day in relation to the corresponding mean observations are on average very small.
+
+Let's also observe correlations between our explanatory variables by themselves and the variable we're attempting to predict. As there is no natural way of turning the four-class multinomial variable into a numeric form (because the different classes don't have a clear direction in which they rise or fall), let's observe how the explanatory variables correlate with the variable "class" instead. This should help us get a preliminary sense of what explanatory variables might describe our variable of interest the best.
+
+```{r}
+cor(npf[,c(2:102)])[101,]
+```
+
+Based on this, we might as least preliminarily be interested in measurements of solar radiation (measurements Glob), net radiation (measurements Net), $O^3$ (measurements O3),  potential temperature gradient in C/m (measurements PTG), reflected solar radiation (measurements RGlob), temperature (measurements T)m type-A UV radiation (measurements UV_A) and measurements RHIRGA (which perhaps refer to some kind of relative humidity) as explanatory variables.
+
 (The data is over non-consecutive days, ok, but are there any significant gaps e.g. a month?)
+
+
+## Correlation between parameters
 
 ```{r original correlation plot, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 library(corrplot)
@@ -45,8 +194,7 @@ library(corrplot)
 cmData <- cor(npfData)
 corrplot(cmData, order = "FPC", tl.cex = 0.3, tl.col = "black")
 ``` 
-
-## Correlation between parameters
+Many classifiers are affected by correlation and colinearity between variables. As expected, we found that many of the variables describing the same phenomenon are correlated, as are variables related to radiation (see figure below).
 
 The initial data analysis showed that many of the parameters are correlated. For many classifiers, highly correlated parameters are problematic, and for this reason we set out to drop some of the most highly correlated columns from the data set. We know that many of the parameters are measurements of the same thing at different heights. For example, water vapour concentration (H20) has been measured at heights 4.2m, 8.4m, 16.8m, 33.6m, 50.4m and 67.2m. The correlation coefficients between the daily means at different heights are essentially 1 (see table 1).
 
@@ -73,7 +221,13 @@ The correlation plot for the remaining parameter shows us that the remaining hih
 # Classifier
 
 ## Description of considered machine learning approaches
+In order to use a model that describes the process that creates the data the best, we attempted to use several different kinds of models to assess the data. After defining each of these models, we would assess which of the models we used performed best and use said model in our predictions.
 
+Specifically, the two measures we used to assess the quality of each model were its accuracy and perplexity. We defined accuracy as simply the relative amount of values the model predicted correctly, expressed mathematically for variables of interest $y_i$ and related predictions $\hat{y}_i$ as $\frac{\sum_{i=1}^{n}I(y_i=\hat{y}_i)}{n}$. This measures whether the model defines the labels correctly. All values naturally receieve values within interval $[0,1]$ and higher values imply better results.
+
+Perplexity instead expresses the relative confidence in those predictions. The models we use give estimated probabilities $\hat{p}(\hat{y_i}=y)$ that the datapoints $\hat{y_i}$ we're predicting receive specific values $y$. Thus, if the model is descriptive of the phenomena which create the dataset, it would seem reasonable that for the actual realized values $y$ the measure $\hat{p}(\hat{y_i}=y)$ would be relatively high. Thus its logarithmic transformation $\log(\hat{p}(\hat{y_i}=y))$ would also be able to receive high values, and similarly $-\log(\hat{p}(\hat{y_i}=y))$ and $e^{\log(\hat{p}(\hat{y_i}=y))}$ would receive small values. Thus we can use as a corresponding overall measure for the dataset the measurement $e^{-\frac{\sum_{i=1}^n\log(\hat{p}(\hat{y_i}=y_{i}))}{n}}$ where $y_i$ are realized values of the observations we're attempting to assess through $\hat{y_i}$. As $\hat{p}(y_i=y)\in [0,1]$ for all $\log(\hat{p}(y_i=y)) \le 0$ for all y. Thus, all values of our general perplexity measure are within interval $[1,\infty)$ and smaller values are preferred.
+
+However, it is not sufficient to simply define the model on the training dataset and assess accuracy and perplexity on said training dataset as this would woefully inflate the accuracy assessment and deflate the perplexity assessment of the model on a general dataset. We instead attempted to assess accuracy and perplexity through cross-validation methods, specifically leave-one-out cross-validation (loo-cv). The idea behind loo-cv is that for each observation in the training dataset, a model is trained based on all other observations in the dataset. This new model is then used to predict the training dataset value that was left out of defining the model. With this method, we receive based on observations of explanatory variables both predicted values and estimates of probabilities for specific events for each measurement in a way that didn't include the observations in both defining the model training and assessing its quality. Thus, we can use these measures in our accuracy and perplexity calculations to better assess how the model using all the observations in the training dataset behaves on a completely separate test dataset.
 ```{r preprocess data, echo=FALSE}
 # Sample half of the data for training and testing sets
 set.seed(42)
@@ -81,8 +235,31 @@ idx <- sample(nrow(npfData), nrow(npfData)/2)
 npf_train <- npfData[idx, ]
 npf_test <- npfData[-idx, ]
 ```
+Next, let's discuss some of the models we considered
 
-## Chosen calssifier, pros and cons of this particular classifier for this application
+### Logistic regression
+
+ogistic regression models can be used for binomial variables as well as for multinomial variables under specific assumptions. The idea of logistic regression in a binary case is that our variable of interest $Y$ is binomially distributed with parameter $q\in [0,1]$ representing probability that $Y$ receieves one of the values (this is somewhat irrelevant as the corresponding parameter for the other value would simply be $1-q$). Now, with explanatory variables $X$ we assume that these $X$ influence the parameter $p$ for each observation, meaning $p(Y|X)=q(X)^{Y}(1-q(X))^{1-Y}$ is a binomial probability with parameter $q(X)$ being of form $\sigma(\sum \lambda_i X_i)$ for values of individual explanatory variables $X_i$ and coefficients $\lambda_i$ and link function $\sigma: \mathbb{R}\to [0,1]$. Thus we can estimate a logistic regression by finding parameters $\lambda_i$ that maximize the likelihood function $\prod p(Y_i|X)$.
+
+Notable benefits of the logistic regression model include %tähän pitää vielä kirjoittaa lisää
+
+However, possible shortcomings of the logistic regression model include assumptions of linearity in relation to the explanatory variables and the parameter (which we could attempt to correct but with such a collection of explanatory variables, this at least can't be applied immediately), assumptions of for link function that are required to define coefficients, and especially with high-dimensional models, multicollinearity can become a notable problem.
+
+In our model, we used specifically the logistic link function, implying $\sigma(x)=\frac{e^{x}}{e^{x}+1}$, although we acknowledge that other choices such as the probit link could have also been viable options. In order to curb issues related to multicollinearity, we first limited ourselves to the dataset with observations measured at multiples only observed at 16.8 meters. After this, we reduced the set of explanatory variables further via variance inflation factors. Variance inflation factors (VIFs) can be calculated for each explanatory variable in a model through assessing linear models for each of the explanatory variables. The VIF for explanatory variable $X_i$ is defined as $\frac{1}{1-R_i^2}$ where $R_i^2$ is the amount of variance of $X_i$ explained through a linear model by the other explanatory variables. Thus, these values express how much the explanatory variable in question can be described by a linear combination of the other explanatory variables. Thus, particularly high VIFs imply multicollinearity being present in the model.
+
+As removing one explanatory variable effects the VIFs of all other variables, we chose to implement an iterative process to remove variables based on VIFs. After defining a logistic regression model with all explanatory variables, we calculated the VIFs, assessed which variable had the highest VIF, removed both this variable and the other variable describing the same set of observations (if a mean variable had the highest VIF, we would also remove the corresponding standard deviation and if a standard deviation variable had the highest VIF, we would also remove the corresponding mean variable). We decided to do this as it felt imprudent to choose to not include one descriptor of an observation in the baseline model which we're assessing while including the other one. After this, we would repeat the process until the highest VIF value for a variable was less than 10. The choice of the limit was based on descriptions in the course material.
+
+After this, we had a remaining set of 18 explanatory variables, which we modelled using logistic regression. After checking the coefficients, there were still variables for which the likelihood ratio tests gave relatively high p-values for hypotheses involving non-zero coefficients. In order to deal with this, we set those coefficients equal to zero and assessed the model with the remaining explanatory variables. Through this, we received a simpler model with  explanatory variables.
+
+### Lasso regression
+
+Lasso regression has obvious links to logistic regression but it includes a penalty term which punishes models with high values of coefficients. In comparable linear regression minimizing squared error, the minimizable function is the sum of the squared error terms and $\sum_{i=1}^n \gamma |\lambda_i|$ where $\gamma>0$. We similarly as in logistic regression assess coefficients for a model that describes parameter $q$ of a binomial model that minimizes this function.
+
+One of the benefits of lasso regression is that including this penalty term in the optimization process leads to simpler models with fewer explanatory variables, as also lower-dimensional models lead are preferred. Thus, the lasso model in and of itself can remove variables which are highly correlated with other variables from the model and thus at least alleviate multicollinarity within the model. However, the selection between possible correlated variables can apparently be rather random and thus not perhaps fully descriptive of the data-generating process.
+
+In terms of our modelling, we decided to use lasso instead of a comparable method called ridge regression, which uses penalty term $\sum_{i=1}^n \gamma \lambda_i^2$. The reason for this is that we preferred to make a simpler model with fewer explanatory variables rather than ridge regression, which tends to not reduce the dimension of the model but rather simply give similar coefficients to all correlated explanatory variables. We attempted to assess the value of $\gamma$ which would minimize loo cross-validated misclassification rate with the function cv.glmnet. After defining this value, we calculated cross-validated accuracy (which should be equivalent to what was calculated by cv.glmnet) as well as the cross-validated perplexity.
+
+## Chosen classifier, pros and cons of this particular classifier for this application
 
 
 # Results
