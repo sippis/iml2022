@@ -351,6 +351,10 @@ Other benefits benefits of using support vector classifiers include that they ha
 
 For our model, we used functions tune and svm from R package e1071. We chose to run a 10-fold cross validation on a set of tuning parameters $C$ to assess which kernel performed best and chose to model the value based on that. In these preliminary assessments, we assessed the radial and linear kernels had the best performance of the ones available in package e1071. For these kernels, we ran loo-cross validation to assess the value of tuning parameter $C$ and calculated for said tuning parameter loo-cross-validated accuracy and perplexity. Eventually, the radial kernel had slightly better accuracy but the linear kernel had lower perplexity and as a result, we chose to use the linear kernel in our model.
 
+### Classification trees
+
+To be added later
+
 ## Classifier performances (numerical)
 
 In order to reduce knitting time for the file, we will in this preliminary report instead of expressing the full R code to calculate the values, simply report the results we received and instead return the full R code only with the final report. The results for the two-class models in terms of loo-cross-validated accuracy and perplexity are:
@@ -366,9 +370,8 @@ LDA & 0.89 & 1.33\\
 QDA & 0.85 & 6.34\\
 SVM & 0.88 & 1.34\\
 Lasso & 0.89 & 1.29\\
-Random Forest & 0.89 & 1.35\\
-
-
+Classification trees & 0.89 & 1.35\\
+\hline
 \end{tabular}
 \end{table}
 
@@ -378,7 +381,7 @@ With our observed best-performing models being the logistic regression model, th
 
 We eventually also chose to not use the LDA model after assessing the assumptions related to the model. LDA models have been found to perform best with a limited amount of variables and we still question whether we should attempt to reduce the amount of variables from the model further from the current amount of 38 from the model. On top of this, considering the assumption of equal variances, the boxplots we drew earlier in the report imply that class "nonevent" might have larger variance for some variables than class "event".
 
-We made the decision based on preliminary results, and though decision trees would represent an equally viable solution, we calculated those results only later on, and by that point had already calculated the results for the logistic regression model. However, for the final report we might consider transitioning to the decision tree model.
+We made the decision of model based on preliminary results, and though classification trees would represent an equally viable solution, we calculated those results only later on, and by that point had already calculated the results for the logistic regression model. However, for the final report we might consider transitioning to the classification tree model.
 
 Thus we were left with the logistic regression model, which was also lower-dimensional than many of the other models with only 10 explanatory variables. However, we could question in relation to this model whether there is sufficient basis to for example remove certain variables, which might describe relevant information, as well as for example whether including an intercept in the model would be meaningful in terms of interpretation. Currently, several of these decisions are based on likelihood-ratio tests performed within the R function glm, which was pursued in an attempt to create a lower-dimensional model. Also, comparing the logistic regression model to for example the Lasso, which does variable selection on a model with a somewhat comparable minimzable loss function.
 
