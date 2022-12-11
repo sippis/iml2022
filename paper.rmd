@@ -242,7 +242,7 @@ Next, let's discuss some of the models we considered
 
 ogistic regression models can be used for binomial variables as well as for multinomial variables under specific assumptions. The idea of logistic regression in a binary case is that our variable of interest $Y$ is binomially distributed with parameter $q\in [0,1]$ representing probability that $Y$ receieves one of the values (this is somewhat irrelevant as the corresponding parameter for the other value would simply be $1-q$). Now, with explanatory variables $X$ we assume that these $X$ influence the parameter $p$ for each observation, meaning $p(Y|X)=q(X)^{Y}(1-q(X))^{1-Y}$ is a binomial probability with parameter $q(X)$ being of form $\sigma(\sum \lambda_i X_i)$ for values of individual explanatory variables $X_i$ and coefficients $\lambda_i$ and link function $\sigma: \mathbb{R}\to [0,1]$. Thus we can estimate a logistic regression by finding parameters $\lambda_i$ that maximize the likelihood function $\prod p(Y_i|X)$.
 
-Notable benefits of the logistic regression model include %tähän pitää vielä kirjoittaa lisää
+Notable benefits of the logistic regression model include that as a discriminative model it eventually reaches a lower asymptotic variance than comparable generative models. On top of this, compared to for example comparable support vector classifiers, on average logistic regression models fare better under situations where the classes are not easily separable by explanatory variables.
 
 However, possible shortcomings of the logistic regression model include assumptions of linearity in relation to the explanatory variables and the parameter (which we could attempt to correct but with such a collection of explanatory variables, this at least can't be applied immediately), assumptions of for link function that are required to define coefficients, and especially with high-dimensional models, multicollinearity can become a notable problem.
 
@@ -260,6 +260,7 @@ One of the benefits of lasso regression is that including this penalty term in t
 
 In terms of our modelling, we decided to use lasso instead of a comparable method called ridge regression, which uses penalty term $\sum_{i=1}^n \gamma \lambda_i^2$. The reason for this is that we preferred to make a simpler model with fewer explanatory variables rather than ridge regression, which tends to not reduce the dimension of the model but rather simply give similar coefficients to all correlated explanatory variables. We attempted to assess the value of $\gamma$ which would minimize loo cross-validated misclassification rate with the function cv.glmnet. After defining this value, we calculated cross-validated accuracy (which should be equivalent to what was calculated by cv.glmnet) as well as the cross-validated perplexity.
 
+<<<<<<< HEAD
 ## Generative models
 
 In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
@@ -309,6 +310,21 @@ The assumption of independence between predictors is often not realistic, but th
 
 
 
+=======
+### Support Vector Classifiers
+
+The idea of the binary support vector classifier is based on the notion of finding within a $p$-dimensional problem a $(p-1)$-dimensional hyperplane $\lambda_0+\sum\lambda_i x_i=0$ to divide the set of explanatory variables. Now, for this hyperplane, we can divide our observations into two groups, those values for which $\lambda_0+\sum_{i=1}^m\lambda_j x_i>0$ and those values for which $\lambda_0+\sum\lambda_i x_i<0$. Thus, this can function as a model through which we can predict binary variables such as our variable of interest.
+
+However, defining such hyperplanes can be slightly difficult as all values might not be separable by a hyperplane or the hyperplane that separates values can overfit to training data. Thus, we define a soft-margin classifier, which has the benefits of letting some values be misclassified or be closer to the hyperplane than a strict maximal margin classifier would define, which leads to a more robust model that fits most of the training dataset better. 
+
+In order to define this, we need to find the optimal hyperplane to separate the observations. This optimization problem is an optimization problem of $M$ in relation to coefficients $\lambda_i$ and slack variables $\epsilon$ within inequation $y_i(\lambda_0+\sum_{j=1}^m\lambda_jx_{ij})\ge M(1-\epsilon_i)$ with limitations $\sum_{j=1}^{m}\lambda_j^2=1$, $\epsilon_i\ge0$ and $\sum_{i=1}^n\epsilon_i\le C$ for tuning parameter $C$.
+
+As in our optimization the data only depends on the inner products of the explanatory variables and the values of the variable of interest, we can use different generalizations of inner products to gain different kinds of models. Thus with different choices of kernels we can model different kinds of data.
+
+Other benefits benefits of using support vector classifiers include that they have been proven to behave well in several different applications and that it has been shown that on average support vector classifiers perform better than logistic regression models in problems where the classes are well-separated. However, the model can vary quite notably based on the tuning parameter $C$ as this parameter affects the amount of observations that violate the margin and thus increases or decreases the amount of support vectors that influence the model.
+
+For our model, we chose to run a 10-fold cross validation on a set of tuning parameters $C$ to assess which kernel performed best and chose to model the value based on that. In these preliminary assessments, we assessed the radial and linear kernels had the best performance of the ones available in the R package e1071. For these kernels, we ran loo-cross validation to assess the value of tuning parameter $C$ and calculated for said tuning parameter loo-cross-validated accuracy and perplexity. Eventually, the radial kernel had slightly better accuracy but the linear kernel had lower perplexity and as a result, we chose to use the linear kernel in our model
+>>>>>>> 8da20814b3ace7c4cf5181d1f01ae436f40e10b4
 
 ## Chosen classifier, pros and cons of this particular classifier for this application
 
