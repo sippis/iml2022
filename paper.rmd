@@ -260,7 +260,6 @@ One of the benefits of lasso regression is that including this penalty term in t
 
 In terms of our modelling, we decided to use lasso instead of a comparable method called ridge regression, which uses penalty term $\sum_{i=1}^n \gamma \lambda_i^2$. The reason for this is that we preferred to make a simpler model with fewer explanatory variables rather than ridge regression, which tends to not reduce the dimension of the model but rather simply give similar coefficients to all correlated explanatory variables. We attempted to assess the value of $\gamma$ which would minimize loo cross-validated misclassification rate with the function cv.glmnet. After defining this value, we calculated cross-validated accuracy (which should be equivalent to what was calculated by cv.glmnet) as well as the cross-validated perplexity.
 
-<<<<<<< HEAD
 ## Generative models
 
 In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
@@ -306,11 +305,6 @@ A Naive Bayes classifier makes no assumptions on the distribution of the observa
 The assumption of independence between predictors is often not realistic, but the model can perform well nonetheless. This is especially true for small data sets, since estimating a joint distribution requires a large amount of data. 
 
 
-
-
-
-
-=======
 ### Support Vector Classifiers
 
 The idea of the binary support vector classifier is based on the notion of finding within a $p$-dimensional problem a $(p-1)$-dimensional hyperplane $\lambda_0+\sum\lambda_i x_i=0$ to divide the set of explanatory variables. Now, for this hyperplane, we can divide our observations into two groups, those values for which $\lambda_0+\sum_{i=1}^m\lambda_j x_i>0$ and those values for which $\lambda_0+\sum\lambda_i x_i<0$. Thus, this can function as a model through which we can predict binary variables such as our variable of interest.
@@ -324,7 +318,7 @@ As in our optimization the data only depends on the inner products of the explan
 Other benefits benefits of using support vector classifiers include that they have been proven to behave well in several different applications and that it has been shown that on average support vector classifiers perform better than logistic regression models in problems where the classes are well-separated. However, the model can vary quite notably based on the tuning parameter $C$ as this parameter affects the amount of observations that violate the margin and thus increases or decreases the amount of support vectors that influence the model.
 
 For our model, we chose to run a 10-fold cross validation on a set of tuning parameters $C$ to assess which kernel performed best and chose to model the value based on that. In these preliminary assessments, we assessed the radial and linear kernels had the best performance of the ones available in the R package e1071. For these kernels, we ran loo-cross validation to assess the value of tuning parameter $C$ and calculated for said tuning parameter loo-cross-validated accuracy and perplexity. Eventually, the radial kernel had slightly better accuracy but the linear kernel had lower perplexity and as a result, we chose to use the linear kernel in our model
->>>>>>> 8da20814b3ace7c4cf5181d1f01ae436f40e10b4
+
 
 ## Chosen classifier, pros and cons of this particular classifier for this application
 
