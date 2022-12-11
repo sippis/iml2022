@@ -661,6 +661,19 @@ multinb.pred.loocv[multinb.pred.loocv == 4] <- "nonevent"
 
 mean(as.numeric(multinb.pred.loocv == npf.class4$class4))
 ```
+
+Class-specific accuracies in the order Ia, Ib, II, nonevent. 
+
+```{r naive bayes multiclass by class, warning=FALSE, fig.height=4}
+
+mean(as.numeric(multinb.pred.loocv[which(npf.class4$class4 == "Ia")] == npf.class4$class4[which(npf.class4$class4 == "Ia")]))
+mean(as.numeric(multinb.pred.loocv[which(npf.class4$class4 == "Ib")] == npf.class4$class4[which(npf.class4$class4 == "Ib")]))
+mean(as.numeric(multinb.pred.loocv[which(npf.class4$class4 == "II")] == npf.class4$class4[which(npf.class4$class4 == "II")]))
+mean(as.numeric(multinb.pred.loocv[which(npf.class4$class4 == "nonevent")] == npf.class4$class4[which(npf.class4$class4 == "nonevent")]))
+
+```
+
+
 ### LDA on the npf.168-dataset
 
 ```{r lda multiclass, warning=FALSE, fig.height=4}
@@ -686,6 +699,18 @@ multilda.pred.loocv[multilda.pred.loocv == 4] <- "nonevent"
 mean(as.numeric(multilda.pred.loocv == npf.168.class4$class4))
 ```
 
+Class-specific accuracies in the order Ia, Ib, II, nonevent. 
+
+```{r lda multiclass by class, warning=FALSE, fig.height=4}
+
+mean(as.numeric(multilda.pred.loocv[which(npf.class4$class4 == "Ia")] == npf.class4$class4[which(npf.class4$class4 == "Ia")]))
+mean(as.numeric(multilda.pred.loocv[which(npf.class4$class4 == "Ib")] == npf.class4$class4[which(npf.class4$class4 == "Ib")]))
+mean(as.numeric(multilda.pred.loocv[which(npf.class4$class4 == "II")] == npf.class4$class4[which(npf.class4$class4 == "II")]))
+mean(as.numeric(multilda.pred.loocv[which(npf.class4$class4 == "nonevent")] == npf.class4$class4[which(npf.class4$class4 == "nonevent")]))
+
+```
+
+
 ### QDA on the npf.pca-dataset
 
 ```{r qda multiclass, warning=FALSE, fig.height=4}
@@ -709,7 +734,16 @@ multiqda.pred.loocv[multiqda.pred.loocv == 4] <- "nonevent"
 
 mean(as.numeric(multiqda.pred.loocv == npf.pca.class4$class4))
 ```
+Class-specific accuracies in the order Ia, Ib, II, nonevent. 
 
+```{r qda multiclass by class, warning=FALSE, fig.height=4}
+
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "Ia")] == npf.class4$class4[which(npf.class4$class4 == "Ia")]))
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "Ib")] == npf.class4$class4[which(npf.class4$class4 == "Ib")]))
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "II")] == npf.class4$class4[which(npf.class4$class4 == "II")]))
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "nonevent")] == npf.class4$class4[which(npf.class4$class4 == "nonevent")]))
+
+```
 ### QDA on the npf.168.pca-dataset
 
 ```{r qda multiclass 168, warning=FALSE, fig.height=4}
@@ -733,6 +767,16 @@ multiqda.pred.loocv[multiqda.pred.loocv == 4] <- "nonevent"
 
 mean(as.numeric(multiqda.pred.loocv == npf.168.pca.class4$class4))
 ```
+
+```{r qda multiclass 168 by class, warning=FALSE, fig.height=4}
+
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "Ia")] == npf.class4$class4[which(npf.class4$class4 == "Ia")]))
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "Ib")] == npf.class4$class4[which(npf.class4$class4 == "Ib")]))
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "II")] == npf.class4$class4[which(npf.class4$class4 == "II")]))
+mean(as.numeric(multiqda.pred.loocv[which(npf.class4$class4 == "nonevent")] == npf.class4$class4[which(npf.class4$class4 == "nonevent")]))
+
+```
+
 ### GLM
 ```{r glm, warning=FALSE, fig.height=4}
 mod1<-glm(class2~., npf, family=binomial(link="logit"))
