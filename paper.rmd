@@ -38,7 +38,7 @@ Our dataset includes 464 observations of this variable as well as corresponding 
 In order to get a preliminary idea of what we are dealing with, let's visualize some of the variables we're observing as well as calculate some very simple measurements of these variables. First, let's download the dataset, define the binomial variable and observe how many of the observation of "class4" fall into specific classes.
 
 ```{r}
-npf<-read.csv("C:\\Users\\pyrys\\Downloads\\Koulujuttuja\\IntroMachineLearning\\npf_train.csv")
+npf<-read.csv("npf_train.csv")
 npf$class2<-npf$class4!="nonevent"
 print(paste0("Relative amount of observations in class nonevent: ",mean(npf$class4=="nonevent")))
 print(paste0("Relative amount of observations in class Ia: ",mean(npf$class4=="Ia")))
@@ -64,6 +64,7 @@ npf<-npf[,-c(1,2,4)]
 Now we are left with our variable of interest, as well as 100 explanatory variables.
 
 %Mitä teemme tälle, haluammeko viitata tähän visualisointien ja nimien suhteen vai onko ideaalia, että teemme omat visualisointimme, jotka esittelemme tekstissä?
+% (Sara) Ainakin jos tehdään omat visualisoinnit, mielestäni tämän voi poistaa. Visualisointien kanssa kuitenkin miettisin, että mitä todella halutaan näyttää/kertoa, ja tukeeko kyseinen tai kyseiset visualisoinnit tätä. Eli jos visualisointeja halutaan, niin mitä ja miksi, ja miten ne liittyvät luokitteluun ja partikkeleiden muodostumiseen tai muuten tukevat projektityön päämääriä. 
 We also familiarized ourselves with the data through the [smear.avaa.scs.fi](https://smear.avaa.csc.fi/) webpage that offers further visualizations details about the data and the measurement site, and with the variable names and details available at [wiki.helsinki.fi](https://wiki.helsinki.fi/pages/viewpage.action?pageId=243959901).
 
 Let's next visualize some our explanatory variables via boxplots and scatterplots to get a deeper understanding of them. For the sake of simplicity, these visualizations grouped by the phenomena being measured. In order to also prelminarily look at how these variables behave in relation to new particle formation events, we'll also look at said measurements behave in relation to variable "class4". In terms of the boxplots, the boxplots are divided into groups by variable class4, and in terms of the scatterplots, the following colors represent different classes: red represents nonevent days, blue represents days with type Ia NPF events, green represents days with type Ib NPF events and black represents days with type II NPF events:
@@ -183,10 +184,9 @@ cor(npf[,c(2:102)])[101,]
 
 Based on this, we might as least preliminarily be interested in measurements of solar radiation (measurements Glob), net radiation (measurements Net), $O^3$ (measurements O3),  potential temperature gradient in C/m (measurements PTG), reflected solar radiation (measurements RGlob), temperature (measurements T)m type-A UV radiation (measurements UV_A) and measurements RHIRGA (which perhaps refer to some kind of relative humidity) as explanatory variables.
 
-(The data is over non-consecutive days, ok, but are there any significant gaps e.g. a month?)
-
-
 ## Correlation between parameters
+
+The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response.
 
 ```{r original correlation plot, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 library(corrplot)
@@ -194,11 +194,10 @@ library(corrplot)
 cmData <- cor(npfData)
 corrplot(cmData, order = "FPC", tl.cex = 0.3, tl.col = "black")
 ``` 
-Many classifiers are affected by correlation and colinearity between variables. As expected, we found that many of the variables describing the same phenomenon are correlated, as are variables related to radiation (see figure below).
 
-The initial data analysis showed that many of the parameters are correlated. For many classifiers, highly correlated parameters are problematic, and for this reason we set out to drop some of the most highly correlated columns from the data set. We know that many of the parameters are measurements of the same thing at different heights. For example, water vapour concentration (H20) has been measured at heights 4.2m, 8.4m, 16.8m, 33.6m, 50.4m and 67.2m. The correlation coefficients between the daily means at different heights are essentially 1 (see table 1).
+As expected, the correlation plot shows that many of the variables describing the same phenomenon at different heights are correlated, as are variables related to radiation. For many classifiers, highly correlated parameters are problematic, and for this reason we would like to drop some of the most highly correlated columns from the dataset. 
 
-Hence we decided to discard most of the measurements of H2O and other variables for which we had multiple correlating measurements, both the means and the standard deviations. We ended up keeping the measurements measured at 16.8 meters as for some parameters, the measurements were taken only at that height. We found that after this, there are 38 unique columns. The figure below describes the correlations after omitting all but the measurements taken at the selected height.
+We know that many of the parameters are measurements of the same thing at different heights. For example, water vapour concentration (H20) has been measured at heights 4.2m, 8.4m, 16.8m, 33.6m, 50.4m and 67.2m. As can be seen from the table below, the correlation coefficients between the daily means of water vapour concentration at different heights are essentially 1.
 
 ```{r H20 correlations, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 kable(cmData[startsWith(colnames(cmData), "H2O") & endsWith(colnames(cmData), ".mean"), 
@@ -206,6 +205,8 @@ kable(cmData[startsWith(colnames(cmData), "H2O") & endsWith(colnames(cmData), ".
       caption = "Correlation (H20)") %>%
   kable_styling(latex_options = "HOLD_position")
 ``` 
+
+Hence we discard most of the measurements of H2O and other variables for which we have multiple highly correlating measurements, both the means and the standard deviations. We keep the parameters measured at 16.8 meters as for some parameters, the measurements have only been measured at that height. This rather crude method of discarding data leaves us with 38 unique columns. The figure below describes the correlation coefficients between the remaining parameters.
 
 ```{r correlation plot 168, echo=FALSE, fig.dim=c(6, 6)}
 # Select global and 16.8 m high values for correlation plot
@@ -258,6 +259,56 @@ Lasso regression has obvious links to logistic regression but it includes a pena
 One of the benefits of lasso regression is that including this penalty term in the optimization process leads to simpler models with fewer explanatory variables, as also lower-dimensional models lead are preferred. Thus, the lasso model in and of itself can remove variables which are highly correlated with other variables from the model and thus at least alleviate multicollinarity within the model. However, the selection between possible correlated variables can apparently be rather random and thus not perhaps fully descriptive of the data-generating process.
 
 In terms of our modelling, we decided to use lasso instead of a comparable method called ridge regression, which uses penalty term $\sum_{i=1}^n \gamma \lambda_i^2$. The reason for this is that we preferred to make a simpler model with fewer explanatory variables rather than ridge regression, which tends to not reduce the dimension of the model but rather simply give similar coefficients to all correlated explanatory variables. We attempted to assess the value of $\gamma$ which would minimize loo cross-validated misclassification rate with the function cv.glmnet. After defining this value, we calculated cross-validated accuracy (which should be equivalent to what was calculated by cv.glmnet) as well as the cross-validated perplexity.
+
+## Generative models
+
+In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
+\begin{equation*}
+p(Y=k|X) = \frac{\pi_k p(X|Y=k)}{\sum_i \pi_i p(X|Y=i)}.
+\end{equation*}
+Here $pi_k$ is an estimate of the prior probability that a random observation comes from the $k$th class, in our case computed as the fraction of the observations in the training dataset that are in the $k$th class. 
+
+While the general approach is the same for all generative models, they differ in how they estimate $p(X|Y)$. In a dataset with $p$ predictors, estimating $p(X|Y)$ amounts to estimating a $p$-dimensional density function for an observation in the $k$th class. The task is challenging, as we must consider the distribution of each predictor on its own *and* the joint distribution of the predictors. Different models make different assumptions that mitigate the difficulty.
+
+### Linear Discriminant Analysis (LDA)
+
+A linear discriminant analysis classifier assumes that all $p$ predictors $X = (X_1, \dots, X_p)$ are drawn from a multivariate Gaussian distribution. This means that each predictor follows a normal distribution $N(\mu_k, \Sigma)$ where $\mu_k$ is the class-specific mean and $\operatorname{Cov}(X) = \Sigma$ the covariance matrix of $X$, and there is some correlation between each pair of predictors. The estimate of $p(X|Y)$ is
+\begin{equation*}
+p(X|Y) = \frac{1}{(2\pi)^{p/2}|\Sigma|^{1/2}} \exp\left( -\frac{1}{2}(x-\mu_k)^T\Sigma^{-1}(x-\mu_k) \right)
+\end{equation*}
+meaning that the classifier assigns an observation $X$ to to the class for which
+\begin{equation*}
+\delta_k(x) = x^T\Sigma^{-1}\mu_k-\frac{1}{2}\mu_k^T\Sigma^{-1}\mu_k + \log \pi_k
+\end{equation*}
+is maximized. 
+The covariance matrix being the same for all classes is a defining feature of linear discriminant analysis. The assumption makes the model linear and reduces the number of parameters to estimate. This reduces the flexibility and hence lowers the variance of the model. Lower variance can mean that the model performs well, but if the assumption is not reflected in the data, bias can be high and overall performance suffers due to the bias-variance trade-off.
+
+For linear discriminant analysis to work, it is important to have enough observations with regards to the number of predictors, as performance suffers greatly as the number of predictors approaches the number of observations.
+
+In our modeling, we used the function *lda* from the library *MASS*. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
+
+### Quadratic Disriminant Analysis
+
+The assumption that the covariance matrix is shared for all classes is quite strict. Allowing each class to have it's own covariance matrix brings us to quadratic discriminant analysis (QDA). The observations are still assumed to be drawn from a multivariate Gaussian distrbution with a class-specific mean vector, so otherwise the assumptions remain the same as in LDA. Each predictor now follows a normal distribution $N(\mu_k, \Sigma_k)$. The expression to be maximized is 
+\begin{align*}
+\delta_k(x) = x^T\Sigma_k^{-1}\mu_k-\frac{1}{2}x^T\Sigma_k^{-1}x-\frac{1}{2}\mu_k^T\Sigma_k^{-1}\mu_k -\frac{1}{2} \log |\Sigma_k| + \log \pi_k.
+\end{align*}
+Generally, quadratic discriminant analysis is expected to perform better that linear discriminant analysis on large data sets, but as in linear discriminant analysis, the number of predictors must be small enough to produce decent results. Quadratic discriminant analysis is also recommended when the assumption that all classes share a covariance matrix is clearly unfounded.
+
+In our approach, we used the *qda* function from the *MASS* library, and as with linear discriminant analysis, tested the performance of the model on both the original dataset and the dataset with observations measured at multiples only observed at 16.8 meters.
+
+### Naive Bayes
+
+A Naive Bayes classifier makes no assumptions on the distribution of the observations, and instead assumes that within the *k*th class, the *p* predictors are independent. In other words, the assumption is that there is no association between the predictors, and therefore no joint distribution to consider. 
+
+
+The assumption of independence between predictors is often not realistic, but the model can perform well nonetheless. This is especially true for small data sets, since estimating a joint distribution requires a large amount of data. 
+
+
+
+
+
+
 
 ## Chosen classifier, pros and cons of this particular classifier for this application
 
