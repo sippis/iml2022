@@ -357,8 +357,6 @@ In tree-based methods, the data points are divided into smaller and smaller frag
 
 A often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
 
-The second tree-based method that we considered was gradient boosting. For this we used the R library *gbm*.
-
 
 ## Classifier performances (numerical)
 
@@ -382,7 +380,7 @@ Random Forest & 0.89 & 1.35\\
 
 ## Chosen classifier, pros and cons of this particular classifier for this application
 
-With our observed best-performing models being the logistic regression model, the random forest model, the Lasso regression model and the linear discriminant analysis. Out of these models, we eventually chose to use the logistic regresison model. The Lasso model was our best-performing model, but we eventually chose not to use it for practical reasons related to computational heaviness in calculating the multi-class model. Mainly, the amount of information we could gain through calculations in R without R crashing was relatively limited, to the degree that we couldn't always even calculate the cross-validated best choice for the tuning parameter.
+With our observed best-performing models being the logistic regression model, the random forest model, the Lasso regression model and the linear discriminant analysis. Out of these models, we eventually chose to use the logistic regression model. The Lasso model was our best-performing model, but we eventually chose not to use it for practical reasons related to computational heaviness in calculating the multi-class model. Mainly, the amount of information we could gain through calculations in R without R crashing was relatively limited, to the degree that we couldn't always even calculate the cross-validated best choice for the tuning parameter.
 
 We eventually also chose to not use the LDA model after assessing the assumptions related to the model. LDA models have been found to perform best with a limited amount of variables and we still question whether we should attempt to reduce the amount of variables from the model further from the current amount of 38 from the model. On top of this, considering the assumption of equal variances, the boxplots we drew earlier in the report imply that class "nonevent" might have larger variance for some variables than class "event".
 
