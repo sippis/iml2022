@@ -353,7 +353,12 @@ For our model, we used functions tune and svm from R package e1071. We chose to 
 
 ### Classification trees
 
-To be added later
+In tree-based methods, the data points are divided into smaller and smaller fragments based on some set of rules. A new division happens at each branch, so when the size of the tree grows, it becomes more and more fitted to the data. When fitting classification trees, the process is often first started with a very large tree, and then the unnecessary branches are removed in the process of pruning, until the complexity of the tree is reduces to the optimal level. Constructing the trees, pruning, and evaluating the results can be done in a variety of different ways.
+
+A often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
+
+The second tree-based method that we considered was gradient boosting. For this we used the R library *gbm*.
+
 
 ## Classifier performances (numerical)
 
@@ -370,7 +375,7 @@ LDA & 0.89 & 1.33\\
 QDA & 0.85 & 6.34\\
 SVM & 0.88 & 1.34\\
 Lasso & 0.89 & 1.29\\
-Classification trees & 0.89 & 1.35\\
+Random Forest & 0.89 & 1.35\\
 \hline
 \end{tabular}
 \end{table}
