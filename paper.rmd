@@ -25,7 +25,7 @@ npfData <- npfOrig[, -(1:4)]
 
 # Introduction
 
-In this project we trained a classifier on a data set of atmospheric measurements. The task is to predict whether new particle formation (NPF) happens or not on a given day based on the atmospheric data. We ran several different kinds of models, assessed through accuracy and perplexity calculations which of these models performed the best, and discuss the results of our analyses.
+In this project we trained a classifier on a data set of atmospheric measurements. The task is to predict whether new particle formation (NPF) happens or not on a given day based on the atmospheric data. We ran several different kinds of models, assessed through accuracy and perplexity calculations which of these models performed the best, and in this report we discuss the process and the results of our analyses.
 
 # Preprocessing of the data
 
@@ -63,12 +63,32 @@ npf<-npf[,-c(1,2,4)]
 
 Now we are left with our variable of interest, as well as 100 explanatory variables.
 
-%Mitä teemme tälle, haluammeko viitata tähän visualisointien ja nimien suhteen vai onko ideaalia, että teemme omat visualisointimme, jotka esittelemme tekstissä?
-% (Sara) Ainakin jos tehdään omat visualisoinnit, mielestäni tämän voi poistaa. Visualisointien kanssa kuitenkin miettisin, että mitä todella halutaan näyttää/kertoa, ja tukeeko kyseinen tai kyseiset visualisoinnit tätä. Eli jos visualisointeja halutaan, niin mitä ja miksi, ja miten ne liittyvät luokitteluun ja partikkeleiden muodostumiseen tai muuten tukevat projektityön päämääriä. 
-We also familiarized ourselves with the data through the [smear.avaa.scs.fi](https://smear.avaa.csc.fi/) webpage that offers further visualizations details about the data and the measurement site, and with the variable names and details available at [wiki.helsinki.fi](https://wiki.helsinki.fi/pages/viewpage.action?pageId=243959901).
-
 Let's next visualize some our explanatory variables via boxplots and scatterplots to get a deeper understanding of them. For the sake of simplicity, these visualizations grouped by the phenomena being measured. In order to also prelminarily look at how these variables behave in relation to new particle formation events, we'll also look at said measurements behave in relation to variable "class4". In terms of the boxplots, the boxplots are divided into groups by variable class4, and in terms of the scatterplots, the following colors represent different classes: red represents nonevent days, blue represents days with type Ia NPF events, green represents days with type Ib NPF events and black represents days with type II NPF events:
+
 ```{r}
+cols<-c()
+for(i in 1:464){
+  if(npf$class4[i]=="nonevent"){
+    cols<-c(cols,"red")
+  } else if (npf$class4[i]=="Ia"){
+    cols<-c(cols,"blue")
+  } else if (npf$class4[i]=="Ib"){
+    cols<-c(cols,"green")
+  } else {
+    cols<-c(cols, "black")
+  }
+}
+par(mfrow=c(2,4))
+for(i in 2:9){
+plot(1:464,npf[,i],col=cols,main = colnames(npf)[i])
+}
+for(i in 2:9){
+  boxplot(npf[,i]~npf$class4,main = colnames(npf)[i],names=c("Ia","Ib","II","N"))
+}
+
+```
+(Other visualizations omitted from the preliminary report.)
+```{r, eval=FALSE}
 cols<-c()
 for(i in 1:464){
   if(npf$class4[i]=="nonevent"){
@@ -176,6 +196,10 @@ for(i in 100:101){
 
 In particular we notice that with several of the variables the boxplots for the nonevent group observations differ more from the observations for days with NPF events than the boxplots for the different NPF event groups both in terms of smaller or higher values but also spanning larger intervals (although this can partially be caused by there being observations within this group). Another notable thing is that the measurements of the same variables at different heights behave very similarly, which imply correlation between them (we take a more detailed look into this in the section *Correlation between parameters*). We also notice a few interesting sets of variables, such as nitrogen monoxide (measurements NO), potential temperature gradient (measurements PTG), rain indicator signal (measurements SWS), sulphur dioxide concentration (measurements SO2) and (measurements CS), which seem to mostly have very small standard deviations. This would imply that the shifts during the day in relation to the corresponding mean observations are on average very small.
 
+## Correlation
+
+### Correlation between predictors and class
+
 Let's also observe correlations between our explanatory variables by themselves and the variable we're attempting to predict. As there is no natural way of turning the four-class multinomial variable into a numeric form (because the different classes don't have a clear direction in which they rise or fall), let's observe how the explanatory variables correlate with the variable "class" instead. This should help us get a preliminary sense of what explanatory variables might describe our variable of interest the best.
 
 ```{r}
@@ -184,7 +208,7 @@ cor(npf[,c(2:102)])[101,]
 
 Based on this, we might as least preliminarily be interested in measurements of solar radiation (measurements Glob), net radiation (measurements Net), $O^3$ (measurements O3),  potential temperature gradient in C/m (measurements PTG), reflected solar radiation (measurements RGlob), temperature (measurements T)m type-A UV radiation (measurements UV_A) and measurements RHIRGA (which perhaps refer to some kind of relative humidity) as explanatory variables.
 
-## Correlation between parameters
+### Correlation between parameters
 
 The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response.
 
@@ -195,7 +219,7 @@ cmData <- cor(npfData)
 corrplot(cmData, order = "FPC", tl.cex = 0.3, tl.col = "black")
 ``` 
 
-As expected, the correlation plot shows that many of the variables describing the same phenomenon at different heights are correlated, as are variables related to radiation. For many classifiers, highly correlated parameters are problematic, and for this reason we would like to drop some of the most highly correlated columns from the dataset. 
+As expected, the correlation plot shows that many of the variables describing the same phenomenon at different heights are correlated, as are variables related to radiation. For many classifiers, highly correlated parameters are problematic, and for this reason we would like to drop as many of these columns from the dataset as possible. 
 
 We know that many of the parameters are measurements of the same thing at different heights. For example, water vapour concentration (H20) has been measured at heights 4.2m, 8.4m, 16.8m, 33.6m, 50.4m and 67.2m. As can be seen from the table below, the correlation coefficients between the daily means of water vapour concentration at different heights are essentially 1.
 
@@ -217,7 +241,7 @@ cm168 <- cor(npf168)
 corrplot(cm168, order = "FPC", tl.cex = 0.5, tl.col = "black")
 ```
 
-The correlation plot for the remaining parameter shows us that the remaining hihgly correlated parameters are all radiation-related.
+The correlation plot for the remaining parameter shows us that the remaining highly correlated parameters are all radiation-related.
 
 # Classifier
 
