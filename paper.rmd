@@ -270,9 +270,9 @@ Here $pi_k$ is an estimate of the prior probability that a random observation co
 
 While the general approach is the same for all generative models, they differ in how they estimate $p(X|Y)$. In a dataset with $p$ predictors, estimating $p(X|Y)$ amounts to estimating a $p$-dimensional density function for an observation in the $k$th class. The task is challenging, as we must consider the distribution of each predictor on its own *and* the joint distribution of the predictors. Different models make different assumptions that mitigate the difficulty.
 
-### Linear Discriminant Analysis (LDA)
+### Linear Discriminant Analysis
 
-A linear discriminant analysis classifier assumes that all $p$ predictors $X = (X_1, \dots, X_p)$ are drawn from a multivariate Gaussian distribution. This means that each predictor follows a normal distribution $N(\mu_k, \Sigma)$ where $\mu_k$ is the class-specific mean and $\operatorname{Cov}(X) = \Sigma$ the covariance matrix of $X$, and there is some correlation between each pair of predictors. The estimate of $p(X|Y)$ is
+A linear discriminant analysis (LDA) classifier assumes that all $p$ predictors $X = (X_1, \dots, X_p)$ are drawn from a multivariate Gaussian distribution. This means that each predictor follows a normal distribution $N(\mu_k, \Sigma)$ where $\mu_k$ is the class-specific mean and $\operatorname{Cov}(X) = \Sigma$ the covariance matrix of $X$, and there is some correlation between each pair of predictors. The estimate of $p(X|Y)$ is
 \begin{equation*}
 p(X|Y) = \frac{1}{(2\pi)^{p/2}|\Sigma|^{1/2}} \exp\left( -\frac{1}{2}(x-\mu_k)^T\Sigma^{-1}(x-\mu_k) \right)
 \end{equation*}
@@ -287,7 +287,7 @@ For linear discriminant analysis to work, it is important to have enough observa
 
 In our modeling, we used the function *lda* from the library *MASS*. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
 
-### Quadratic Disriminant Analysis
+### Quadratic Disriminant Analysis 
 
 The assumption that the covariance matrix is shared for all classes is quite strict. Allowing each class to have it's own covariance matrix brings us to quadratic discriminant analysis (QDA). The observations are still assumed to be drawn from a multivariate Gaussian distrbution with a class-specific mean vector, so otherwise the assumptions remain the same as in LDA. Each predictor now follows a normal distribution $N(\mu_k, \Sigma_k)$. The expression to be maximized is 
 \begin{align*}
@@ -299,10 +299,12 @@ In our approach, we used the *qda* function from the *MASS* library, and as with
 
 ### Naive Bayes
 
-A Naive Bayes classifier makes no assumptions on the distribution of the observations, and instead assumes that within the *k*th class, the *p* predictors are independent. In other words, the assumption is that there is no association between the predictors, and therefore no joint distribution to consider. 
-
-
-The assumption of independence between predictors is often not realistic, but the model can perform well nonetheless. This is especially true for small data sets, since estimating a joint distribution requires a large amount of data. 
+A naive Bayes classifier makes no assumptions on the distribution of the observations, and instead assumes that within the *k*th class, the *p* predictors are independent. In other words, the assumption is that there is no association between the predictors, and therefore no joint distribution to consider. With this, the posterior probability can be computed as
+\begin{equation*}
+p(Y=k|X) = \frac{\pi_k p(X_1|Y=k) \cdots p(X_p|Y=k)}{\sum_i \pi_i p(X_1|Y=i) \cdots p(X_p|Y=i)}.
+\end{equation*}
+In a naive Bayes model, there are a few possible ways to estimate $p(X|Y)$. For quantitative predictors such as ours, we assume that within each class, the *j*th predictor is drawn from a univariate normal distribution, i.e. $X_j|Y = k \approx N (\mu_{jk}, \sigma^2_jk)$.
+The assumption of independence between predictors is often not realistic, but the model can perform well nonetheless. This is especially true for small datasets, since estimating a joint distribution requires a large amount of data. 
 
 
 ### Support Vector Classifiers
