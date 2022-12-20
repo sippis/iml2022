@@ -280,7 +280,7 @@ Variance inflation factors (VIFs) can be calculated for each explanatory variabl
 
 As removing one explanatory variable effects the VIFs of all other variables, we chose to implement an iterative process to remove variables based on VIFs. After defining a logistic regression model with all explanatory variables, we calculated the VIFs, assessed which variable had the highest VIF, removed both this variable and the other variable describing the same set of observations (if a mean variable had the highest VIF, we would also remove the corresponding standard deviation and if a standard deviation variable had the highest VIF, we would also remove the corresponding mean variable). We decided to do this as it felt imprudent to choose to not include one descriptor of an observation in the baseline model which we're assessing while including the other one. After this, we would repeat the process until the highest VIF value for a variable was less than 10. The choice of the limit was based on descriptions in the course material.
 
-After this, we had a remaining set of 18 explanatory variables, which we modelled using logistic regression. After checking the coefficients, there were still variables for which the likelihood ratio tests gave relatively high p-values for hypotheses involving non-zero coefficients. In order to deal with this, we set those coefficients equal to zero and assessed the model with the remaining explanatory variables. Through this, we received a simpler model with  explanatory variables.
+After this, we had a remaining set of 18 explanatory variables, which we modelled using logistic regression. After checking the coefficients, there were still variables for which the Wald tests gave relatively high p-values for hypotheses involving non-zero coefficients. In order to deal with this, we set those coefficients equal to zero and assessed the model with the remaining explanatory variables. Through this, we received a simpler model with  explanatory variables.
 
 ### Lasso regression
 
@@ -399,6 +399,51 @@ Eventually, we chose to emphasize class2 accuracy, and as a result our final pre
 
 # Results
 
-We notice in terms of multiclass accuracy that while the model predicts in particular nonevents rather well, the loo-cross-validated predictions are less successful for calculating distinct event types. For example, less than 10% of days which belonged to class Ia were predicted into this class. As a result, further changes should be made to the model in the future to make these predictions more viable.
+We eventually have a logistic regression model with 10 explanatory variables which we assume describe the probability of a specific day being an event day. The coefficients of the model are:
+
+\begin{table}
+\begin{tabular}{|r|c|}
+\hline
+Explanatory variable & Estimate of coefficient\\
+\hline
+CO2168.mean&-0.08822672\\
+CO2168.std&0.16589906\\
+H20168.mean&-0.75608185\\
+NO168.mean&-6.45258751\\
+NO168.std&4.78466706\\
+Pamb0.std&0.52939712\\
+RHIRGA168.mean&-0.07244430\\
+RHIRGA168.std&0.19476210\\
+SWS.mean&0.04494533\\
+SWS.std&0.01404611\\
+\hline
+\end{tabular}
+\end{table}
+
+There are a few things of note about this model. First, it does not have an intercept, which implies that if all observations are at zero, the probability of an event would be 0.5. The validity of this assumption should be studied further in relation to the relevant qualities of NPF events. Second, we notice that we have especially high absolute values of coefficients for the variables related to the variables related to nitrous oxide, though said coefficients also have high standard errots. On top of this, we notice that mostly variables describing means have positive coefficients whereas variables describing standard deviations have negative coefficients. One possible interpretation could be that though higher values of the measurements in question throughout the day increase event probability, simply measuring the mean might not be sufficient, and instead questions of the variations throughout the day are relevant as well, specifically the negative coefficient imply that smaller variation throughout the day increases event probability.
+
+In terms of accuracy, let's observe results by class and see what types of events our model recognizes well:
+
+\begin{table}
+\begin{tabular}{|r|cc|}
+\hline
+Used model&Observations in class&Accuracy of predictions for event-type\\
+\hline
+Binary model&Event&0.887931\\
+Binary model&Nonevent&0.8922414\\
+Multinomial model&Ia&0.05882353\\
+Multinomial model&Ib&0.4235294\\
+Multinomial model&II&0.5840708\\
+\hline
+\end{tabular}
+\end{table}
+
+In terms of the binary model, we have rather similar accuracies for both event days and nonevent days. However, we also notice in terms of multiclass accuracy that while the model predicts in particular nonevents rather well, the LOO-cross-validated predictions are less successful for calculating distinct event types. For example, less than 10% of days which belonged to class Ia were predicted into said class. As a result, further changes should be made to the model in the future to improve these predictions.
 
 ## Insights, conclusions, discussion etc.
+
+In order to improve the model, we could ask several different questions concerning the approach we wound up with. First, in terms of variable selection, the measure of standard deviations per day within variables feels somewhat questionable in two different ways: first, it seems relevant to ask what the standard deviation expresses about the phenomena themselves, and whether different kinds of measurements could capture the relevant expressive ideas better, or whether these relevant expressive ideas even exist. Second, since we're assuming in our logisitic regression model that the relationship is a linear combination or at least a linear combination of polynomials of the explanatory variables is relevant: why standard deviation and not variance? For this report, as we don't know sufficienty about the NPF event phenomenon itself, we will simply assume that the standard deviation variables are reasonable within our model and that this scaling is reasonable.
+
+Second, in terms of our variable selection process through VIF and Wald tests, said process is rather simple and could be improved. The VIF iterations also remove corresponding mean and standard deviation variables even if their VIFs are smaller. This was done as the goal of the VIF process was to reduce the amount of phenomena to be observed to as small a collection as seems reasonable, and thus the notion of removing only one of the two variables related to the phenomenon felt slightly odd. Then again, this process was not followed with the Wald tests, as the used interpretation of the Wald tests is specifically more about coefficient values than about the optimization issues caused by multicolinearity, which we chose to discuss the VIF results as. The validity of this approach especially in terms of the VIF process should be questioned.
+
+Also, other variable selection processes such as Lasso (with less computationally expensive cross-validation) and PCA could be used equivalently. However, for the current report, we chose to use our current approach as we wanted both to preserve the interpretability of the coefficients that was missing from the PCA, and as our chosen method of assessing performance was LOO-CV, Lasso was computationally expensive for the multinomial model. Then again, a lower amount of folds in cross-validation could lead to better assessments of the accuracies, and thus be preferrable.
