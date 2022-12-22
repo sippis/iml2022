@@ -434,7 +434,7 @@ Naive Bayes & 0.81 & 152.85&\\
 LDA & 0.89 & 1.33&\\
 QDA & 0.85 & 6.34&\\
 SVM & 0.88 & 1.34&0.84\\
-Lasso & 0.89 & 1.29&0.88\\
+Lasso & 0.89 & 1.29&0.87\\
 Random Forest & 0.89 & 1.35&\\
 \hline
 \end{tabular}
@@ -598,9 +598,11 @@ For example, to reduce multicollinearity, we discarded most of the measurements 
 
 (Sara: muita preprocessing-probleemoja tai vastaavia, joita haluatte nostaa)
 
-The second problem is perhaps not as grave as the first. Especially in our challenge submission, our accuracy (0.84 for two classes and 0.68 for four) and perplexity (1.47) were not all that great. We agreed before submitting the results that we are not aiming to win anything, and the submission itself is enough. We stand by this. We still could have done better in predicting our own results, and we set to rectify this in our final report. 
+The second problem is perhaps not as grave as the first. Especially in our challenge submission, our accuracy (0.84 for two classes and 0.68 for four) and perplexity (1.47) were not all that great. This was partially due to a coding error which made us choose a model that perhaps wasn't ideal, but there was still room for improvement even with our other models. We agreed before submitting the results that we are not aiming to win anything, and the submission itself is enough. We stand by this. We still could have done better in predicting our own results, and we set to rectify this in our final report. 
 
-Towards the 11th of December, we also found that many of our tree-based methods perform as well or better than logistic regression. If we had found this out earlier, we might have opted for a tree-based method as our final classifier. At that point we did not want to discard the work we had done so far, and opted to try to improve our logistic regression model.
+One of the other frustrations includes questions with our approach in relation to cross-validation. Perhaps the original choice of using loo-CV to assess the best model wasn't ideal and eventually in order to accomodate a lower amount of folds would have required us to possibly shift our entire approach from model accuracy and perplexity estimations to choice of ideal model and interpretation of said model as a result. Eventually we used a kind of messy half-measure where we decided our ideal model based on loo-CV and then for the model we used to predict the actual test data, we ran 10-fold cross validation to assess the ideal value of the tuning parameter. This was done to acknowledge the issues with the loo-CV even if, especially as we didn't enter into the contest with this model and for example the results in the table are still based on the loo-cv ideal model to compare it with the other models, and thus we didn't do much with the results we got.
+
+Towards the 11th of December, we also found that many of our tree-based methods perform as well or better than logistic regression. If we had found this out earlier, we might have opted for a tree-based method as our final classifier. At that point we did not want to discard the work we had done so far, and opted to try to improve our logistic regression model instead.
 
 
 ## Group as a whole
