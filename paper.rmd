@@ -33,7 +33,7 @@ In this project we trained a classifier on a data set of atmospheric measurement
 
 The goal of this assignment is to predict the behavior of a multinomially distributed variable "class4", which describes new particle formation events on specific observation days. The variable is treated as a multinomial variable divided into four separate groups: no new particle formation (referred to in the dataset as "nonevent"), very clear and strong particle formation events (referred to in the dataset as class "Ia"), other particle formation events where the growth and formation rate could be determined with a sufficiently good confidence level (referred to in the dataset as class "Ib") and particle formation events where growth and formation rates could either not be defined or there was a possibility that the assessed rates were not sufficiently accurate. For the most part, we are observing a simpler version of this variable instead in the form of a binomial variable, let's refer to that as "class2", which is simply divided into no new particle formation events happening and new particle formation events happening.
 
-Our dataset includes 464 observations of this variable as well as corresponding observations to a collection of 103 other variables. These variables include 50 numeric variables which describe the mean measurement related to phenomenona such as carbon dioxide concentration, solar radiation and air temperature during a measurement day, 50 numeric variables which describe the corresponding standard deviations to these measurements for those same measurement days, an id listing which runs from 1 to 464, the date of each measurement as well as a logical variable describing whether the other measurements are partly bad. We also notice that some of the 50 types of measurements for which means and standard deviations are calculated are in fact related to the same phenomena but are simply measured at different points. For example, one of the measurements is the amount of carbon dioxide but this is measured at four different heights.
+Our dataset includes 464 observations of this variable as well as corresponding observations to a collection of 103 other variables. These variables include 50 numeric variables which describe the mean measurement related to phenomena such as carbon dioxide concentration, solar radiation and air temperature during a measurement day, 50 numeric variables which describe the corresponding standard deviations to these measurements for those same measurement days, an id listing which runs from 1 to 464, the date of each measurement as well as a logical variable describing whether the other measurements are partly bad. We also notice that some of the 50 types of measurements for which means and standard deviations are calculated are in fact related to the same phenomena but are simply measured at different points. For example, one of the measurements is the amount of carbon dioxide but this is measured at four different heights.
 
 In order to get a preliminary idea of what we are dealing with, let's visualize some of the variables we're observing as well as calculate some very simple measurements of these variables. First, let's download the dataset, define the binomial variable and observe how many of the observation of "class4" fall into specific classes.
 
@@ -48,10 +48,10 @@ print(paste0("Relative amount of observations in class II: ",mean(npf$class4=="I
 
 We observe that half of our observations are days with no new particle formation events, implying that half our observations are days with new particle formation events. Out of the classes related to days with new particle formation events, class I type events are more common than class II type events but class II type events are more common than either class Ia or class Ib type events. And within class type I events, we have more observations of class Ib type events than class Ia type events.
 
-Let's also calculate basic summary statistics for the other measurements
+Let's also calculate basic summary statistics for the first few variables. The full summary of the whole dataset is available in appendix A.
 
 ```{r}
-summary(npf)
+summary(npf[,1:4])
 ```
 
 Of particular interest here is that the variable "partlybad" seems to have only observations of type "FALSE". As a result, we can remove it from the dataset as it gives no extra information. We can also remove the variable id, as the order of the observations is not of interest in our analysis. And on top of this, it is unlikely that we will use the specific dates in relation to the observations either, so we will simply shift that information to be the rownames for the data.
@@ -62,6 +62,7 @@ npf<-npf[,-c(1,2,4)]
 ```
 
 Now we are left with our variable of interest, as well as 100 explanatory variables.
+
 
 Let's next visualize some our explanatory variables via boxplots and scatterplots to get a deeper understanding of them. For the sake of simplicity, these visualizations grouped by the phenomena being measured. In order to also prelminarily look at how these variables behave in relation to new particle formation events, we'll also look at said measurements behave in relation to variable "class4". In terms of the boxplots, the boxplots are divided into groups by variable class4, and in terms of the scatterplots, the following colors represent different classes: red represents nonevent days, blue represents days with type Ia NPF events, green represents days with type Ib NPF events and black represents days with type II NPF events:
 
@@ -290,7 +291,7 @@ One of the benefits of lasso regression is that including this penalty term in t
 
 In terms of our modelling, we decided to use lasso instead of a comparable method called ridge regression, which uses penalty term $\sum_{i=1}^n \gamma \lambda_i^2$. The reason for this is that we preferred to make a simpler model with fewer explanatory variables rather than ridge regression, which tends to not reduce the dimension of the model but rather simply give similar coefficients to all correlated explanatory variables. In order to estimate the model, we used R functions glmnet and cv.glmnet from package glmnet. We attempted to assess the value of $\gamma$ which would minimize loo cross-validated misclassification rate with the function cv.glmnet. After defining this value, we calculated cross-validated accuracy (which should be equivalent to what was calculated by cv.glmnet) as well as the cross-validated perplexity for the model estimated by glmnet.
 
-## Generative models
+### Generative models
 
 In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
 \begin{equation*}
@@ -300,7 +301,7 @@ Here $pi_k$ is an estimate of the prior probability that a random observation co
 
 While the general approach is the same for all generative models, they differ in how they estimate $p(X|Y)$. In a dataset with $p$ predictors, estimating $p(X|Y)$ amounts to estimating a $p$-dimensional density function for an observation in the $k$th class. The task is challenging, as we must consider the distribution of each predictor on its own *and* the joint distribution of the predictors. Different models make different assumptions that mitigate the difficulty.
 
-### Linear Discriminant Analysis
+#### Linear Discriminant Analysis
 
 A linear discriminant analysis (LDA) classifier assumes that all $p$ predictors $X = (X_1, \dots, X_p)$ are drawn from a multivariate Gaussian distribution. This means that each predictor follows a normal distribution $N(\mu_k, \Sigma)$ where $\mu_k$ is the class-specific mean and $\operatorname{Cov}(X) = \Sigma$ the covariance matrix of $X$, and there is some correlation between each pair of predictors. The estimate of $p(X|Y)$ is
 \begin{equation*}
@@ -317,7 +318,7 @@ For linear discriminant analysis to work, it is important to have enough observa
 
 In our modeling, we used the function *lda* from the library *MASS*. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
 
-### Quadratic Disriminant Analysis 
+#### Quadratic Disriminant Analysis 
 
 The assumption that the covariance matrix is shared for all classes is quite strict. Allowing each class to have it's own covariance matrix brings us to quadratic discriminant analysis (QDA). The observations are still assumed to be drawn from a multivariate Gaussian distrbution with a class-specific mean vector, so otherwise the assumptions remain the same as in LDA. Each predictor now follows a normal distribution $N(\mu_k, \Sigma_k)$. The expression to be maximized is 
 \begin{align*}
@@ -327,7 +328,7 @@ Generally, quadratic discriminant analysis is expected to perform better that li
 
 In our approach, we used the *qda* function from the *MASS* library, and as with linear discriminant analysis, tested the performance of the model on both the original dataset and the dataset with observations measured at multiples only observed at 16.8 meters.
 
-### Naive Bayes
+#### Naive Bayes
 
 A naive Bayes classifier makes no assumptions on the distribution of the observations, and instead assumes that within the *k*th class, the *p* predictors are independent. In other words, the assumption is that there is no association between the predictors, and therefore no joint distribution to consider. With this, the posterior probability can be computed as
 \begin{equation*}
