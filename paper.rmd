@@ -27,7 +27,7 @@ npfData <- npfOrig[, -(1:4)]
 
 # Introduction
 
-In this project we trained a classifier on a data set of atmospheric measurements. The task is to predict whether new particle formation (NPF) happens or not on a given day based on the atmospheric data. We ran several different kinds of models, assessed through accuracy and perplexity calculations which of these models performed the best, and in this report we discuss the process and the results of our analyses.
+In this project we trained a classifier on a data set of atmospheric measurements. The task is to predict whether new particle formation (NPF) happens or not on a given day based on the atmospheric data. We ran several different kinds of models, assessed through accuracy and perplexity calculations which of these models performed the best, and in this report we discuss the process and the results of our analyses. Our main reference throughout the report is the course book [@book], and if a reference is not specified when discussing machine learning theory, the reader can safely assume that we rely on [@book].
 
 # Preprocessing of the data
 
@@ -65,7 +65,66 @@ npf<-npf[,-c(1,2,4)]
 
 Now we are left with our variable of interest, as well as 100 explanatory variables.
 
-Let's next visualize with R [@RDCT2008] some our explanatory variables via boxplots and scatterplots to get a deeper understanding of them. For the sake of simplicity, these visualizations grouped by the phenomena being measured. In order to also prelminarily look at how these variables behave in relation to new particle formation events, we'll also look at said measurements behave in relation to variable "class4". In terms of the boxplots, the boxplots are divided into groups by variable class4, and in terms of the scatterplots, the following colors represent different classes: red represents nonevent days, blue represents days with type Ia NPF events, green represents days with type Ib NPF events and black represents days with type II NPF events:
+The key objective in this project, classifying NPF event and nonevent days correctly, is an example of *supervised learning*: our data set contains the correct classes, and we can use these in the training of our models. With *unsupervised learning* we can look for insights into the data without using the known classes. There are many different types of unsupervised learning, discussed in [@book, p.497-552], but since our goal is classification, we focus on *cluster analysis*. This means that we look for subgroups of similar observations. In particular, we use K-means clustering to see if we can easily differentiate between event and nonevent days, and between event types Ia, Ib, II and nonevent, without using the given classes except to validate the results. The K-means clustering algorithm starts by assigning each observation to a cluster at random. At every iteration, the algorithm computes a *cluster centroid*, a vector of the variable means for each observation in the *k*th cluster, and then reassigns each observation to the cluster with the nearest centroid. The nearest centroid is the one to which an observation has the smallest Euclidean distance. 
+
+Recall that we have daily means and standard deviations in the dataset. For the purposes of K-means clustering, we restrict ourselves to the means, and because the variables are measured on very different scales, we normalize them to have zero mean and unit variance with the *scale* function. The random cluster assignments tend to have an effect on the end result, so we run the *kmeans* function with 1000 random starting points, and look at the best result. With 2 clusters, the confusion matrix given by the *solve_LSAP* function from the [@clue] package that matches the clusters with the known classes, is as follows:
+
+```{r}
+## choose variables whose names end with ".mean" together with "class4"
+vars <- colnames(npf)[sapply(
+  colnames(npf),
+  function(s) nchar(s) > 5 && substr(s, nchar(s) - 4, nchar(s)) == ".mean"
+)]
+npf.means <- npf[, c(vars, "class2","class4")]
+npf.means$class2 <- factor("event", levels = c("nonevent", "event"))
+npf.means$class2[npf$class4 == "nonevent"] <- "nonevent"
+
+## strip the trailing ".mean" to make the variable names prettier
+colnames(npf.means)[1:length(vars)] <- sapply(
+  colnames(npf.means)[1:length(vars)],
+  function(s) substr(s, 1, nchar(s) - 5)
+)
+vars <- colnames(npf.means)[1:length(vars)]
+
+set.seed(42)
+
+library(clue)
+
+cl <- kmeans(scale(npf.means[, vars]),
+  centers = 2, algorithm = "Lloyd", nstart = 1000, iter.max = 100
+)
+
+## Create a confusion matrix between the known classes (class 4) and
+## cluster indices.
+tt <- table(npf.means$class2, cl$cluster)
+## Find a permutation of cluster indices such that they
+## best match the classes in class4.
+tt <- tt[, solve_LSAP(tt, maximum = TRUE)]
+
+print(tt)
+
+```
+K-means clustering assigns 178 observations to cluster 1 and 286 to cluster 2, so it does not quite catch the 50-50 division in the dataset. It has assigned 58% of nonevents to class 1, and 81% of events to class 2, which amounts to a total accuracy of 69% if we think of the clustering result as a classifier. With 4 clusters, the accuracy of our cluster-classifier drops down to 46%. The K-means algorithm cannot easily identify the correct event classes.
+
+```{r}
+
+cl <- kmeans(scale(npf.means[, vars]),
+  centers = 4, algorithm = "Lloyd", nstart = 1000, iter.max = 100
+)
+
+## Create a confusion matrix between the known classes (class 4) and
+## cluster indices.
+tt <- table(npf.means$class4, cl$cluster)
+## Find a permutation of cluster indices such that they
+## best match the classes in class4.
+tt <- tt[, solve_LSAP(tt, maximum = TRUE)]
+
+print(tt)
+
+```
+
+
+Let's next visualize with R [@RDCT2008] some our explanatory variables via boxplots and scatterplots to get a deeper understanding of them. For the sake of simplicity, these visualizations grouped by the phenomena being measured. In order to also preliminarily look at how these variables behave in relation to new particle formation events, we'll also look at said measurements behave in relation to variable "class4". In terms of the boxplots, the boxplots are divided into groups by variable class4, and in terms of the scatterplots, the following colors represent different classes: red represents nonevent days, blue represents days with type Ia NPF events, green represents days with type Ib NPF events and black represents days with type II NPF events:
 
 ```{r}
 cols<-c()
@@ -210,7 +269,7 @@ cor(npf[,c(2:102)])[101,]
 
 Based on this, we might as least preliminarily be interested in measurements of solar radiation (measurements Glob), net radiation (measurements Net), $O^3$ (measurements O3),  potential temperature gradient in C/m (measurements PTG), reflected solar radiation (measurements RGlob), temperature (measurements T)m type-A UV radiation (measurements UV_A) and measurements RHIRGA (which perhaps refer to some kind of relative humidity) as explanatory variables.
 
-### Correlation between parameters
+### Correlation between variables
 
 The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response. Let's visualize these correlations with R package [@corrplot]
 
@@ -221,9 +280,9 @@ cmData <- cor(npfData)
 corrplot(cmData, order = "FPC", tl.cex = 0.3, tl.col = "black")
 ``` 
 
-As expected, the correlation plot shows that many of the variables describing the same phenomenon at different heights are correlated, as are variables related to radiation. For many classifiers, highly correlated parameters are problematic, and for this reason we would like to drop as many of these columns from the dataset as possible. 
+As expected, the correlation plot shows that many of the variables describing the same phenomenon at different heights are correlated, as are variables related to radiation. For many classifiers, highly correlated variables are problematic, and for this reason we would like to drop as many of these columns from the dataset as possible. 
 
-We know that many of the parameters are measurements of the same thing at different heights. For example, water vapour concentration (H20) has been measured at heights 4.2m, 8.4m, 16.8m, 33.6m, 50.4m and 67.2m. As can be seen from the table below, the correlation coefficients between the daily means of water vapour concentration at different heights are essentially 1.
+We know that many of the variables are measurements of the same thing at different heights. For example, water vapour concentration (H20) has been measured at heights 4.2m, 8.4m, 16.8m, 33.6m, 50.4m and 67.2m. As can be seen from the table below, the correlation coefficients between the daily means of water vapour concentration at different heights are essentially 1.
 
 ```{r H20 correlations, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 kable(cmData[startsWith(colnames(cmData), "H2O") & endsWith(colnames(cmData), ".mean"), 
@@ -232,7 +291,7 @@ kable(cmData[startsWith(colnames(cmData), "H2O") & endsWith(colnames(cmData), ".
   kable_styling(latex_options = "HOLD_position")
 ``` 
 
-Hence we discard most of the measurements of H2O and other variables for which we have multiple highly correlating measurements, both the means and the standard deviations. We keep the parameters measured at 16.8 meters as for some parameters, the measurements have only been measured at that height. This rather crude method of discarding data leaves us with 38 unique columns. The figure below describes the correlation coefficients between the remaining parameters.
+Hence we discard most of the measurements of H2O and other variables for which we have multiple highly correlating measurements, both the means and the standard deviations. We keep the parameters measured at 16.8 meters as for some parameters, the measurements have only been measured at that height. This rather crude method of discarding data leaves us with 38 unique columns. The figure below describes the correlation coefficients between the remaining variables
 
 ```{r correlation plot 168, echo=FALSE, fig.dim=c(6, 6)}
 # Select global and 16.8 m high values for correlation plot
@@ -243,12 +302,12 @@ cm168 <- cor(npf168)
 corrplot(cm168, order = "FPC", tl.cex = 0.5, tl.col = "black")
 ```
 
-The correlation plot for the remaining parameter shows us that the remaining highly correlated parameters are all radiation-related.
+The correlation plot for the remaining variables shows us that the remaining highly correlated variables are all radiation-related. When collinearity is reduced, variables are often discarded based on some threshold of the correlation coefficient, e.g. 0.7, but at this point we opt to leave the radiation-related variables be, and reduce collinearity in different ways for the models where it may present problems.
 
 # Classifier
 
 ## Description of considered machine learning approaches
-In order to use a model that describes the process that creates the data the best, we attempted to use several different kinds of models to assess the data. After defining each of these models, we would assess which of the models we used performed best and use said model in our predictions.
+In order to use a model that describes the process that creates the data the best, we attempted to use several different kinds of models to assess the data. We test these models on the original dataset or on a suitably modified version of it. After defining each of these models, we would assess which of the models we used performed best and use said model in our predictions.
 
 Specifically, the two measures we used to assess the quality of each model were its accuracy and perplexity. We defined accuracy similarly as in the course material [@book, p. 37] as simply the relative amount of values the model predicted correctly, expressed mathematically for variables of interest $y_i$ and related predictions $\hat{y}_i$ as $\frac{\sum_{i=1}^{n}I(y_i=\hat{y}_i)}{n}$. This measures whether the model defines the labels correctly. All values naturally receieve values within interval $[0,1]$ and higher values imply better results.
 
@@ -294,7 +353,7 @@ In terms of our modelling, we decided to use Lasso instead of a comparable metho
 
 ### Generative models
 
-In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
+In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models are covered in [@book, p.141-158]. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
 \begin{equation*}
 p(Y=k|X) = \frac{\pi_k p(X|Y=k)}{\sum_i \pi_i p(X|Y=i)}.
 \end{equation*}
@@ -317,7 +376,7 @@ The covariance matrix being the same for all classes is a defining feature of li
 
 For linear discriminant analysis to work, it is important to have enough observations with regards to the number of predictors, as performance suffers greatly as the number of predictors approaches the number of observations.
 
-In our modeling, we used the function *lda* from the library *MASS*. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
+In our modeling, we used the function lda from the package [@MASS]. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
 
 #### Quadratic Disriminant Analysis 
 
@@ -327,7 +386,7 @@ The assumption that the covariance matrix is shared for all classes is quite str
 \end{align*}
 Generally, quadratic discriminant analysis is expected to perform better that linear discriminant analysis on large data sets, but as in linear discriminant analysis, the number of predictors must be small enough to produce decent results. Quadratic discriminant analysis is also recommended when the assumption that all classes share a covariance matrix is clearly unfounded.
 
-In our approach, we used the *qda* function from the *MASS* library, and as with linear discriminant analysis, tested the performance of the model on both the original dataset and the dataset with observations measured at multiples only observed at 16.8 meters.
+In our approach, we used the qda function from the [@MASS] package, and as with linear discriminant analysis, tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
 
 #### Naive Bayes
 
@@ -337,6 +396,7 @@ p(Y=k|X) = \frac{\pi_k p(X_1|Y=k) \cdots p(X_p|Y=k)}{\sum_i \pi_i p(X_1|Y=i) \cd
 \end{equation*}
 In a naive Bayes model, there are a few possible ways to estimate $p(X|Y)$. For quantitative predictors such as ours, we assume that within each class, the *j*th predictor is drawn from a univariate normal distribution, i.e. $X_j|Y = k \approx N (\mu_{jk}, \sigma^2_jk)$.
 The assumption of independence between predictors is often not realistic, but the model can perform well nonetheless. This is especially true for small datasets, since estimating a joint distribution requires a large amount of data. 
+We used the naiveBayes function from the package [@e1071] and the original dataset.
 
 
 ### Support Vector Classifiers
@@ -449,3 +509,47 @@ In order to improve the model, we could ask several different questions concerni
 Second, in terms of our variable selection process through VIF and Wald tests, said process is rather simple and could be improved. The VIF iterations also remove corresponding mean and standard deviation variables even if their VIFs are smaller. This was done as the goal of the VIF process was to reduce the amount of phenomena to be observed to as small a collection as seems reasonable, and thus the notion of removing only one of the two variables related to the phenomenon felt slightly odd. Then again, this process was not followed with the Wald tests, as the used interpretation of the Wald tests is specifically more about coefficient values than about the optimization issues caused by multicolinearity, which we chose to discuss the VIF results as. The validity of this approach especially in terms of the VIF process should be questioned, even though results where we run VIF iteratively and only remove the variable that has the highest VIF value gives us a fairly similar model (overall 11 coefficients and an intercept with mostly the same set of explanatory variables).
 
 Also, other variable selection processes such as Lasso (with less computationally expensive cross-validation) and PCA could be used equivalently. However, for the current report, we chose to use our current approach as our chosen method of assessing performance was LOO-CV and thus Lasso was computationally expensive for the multinomial model. Then again, a lower amount of folds in cross-validation could lead to better assessments of the accuracies, and thus be preferrable. We could have also used PCA but by using PCA, we'd lose the interpretability of the coefficients and when running the LOO-cv comparisons, we didn't see notable benefits in terms of accuracy or perplexity from using PCA on a larger collection of variables compared to our current approach of selecting a sufficiently small amount of explanatory variables.
+
+\newpage 
+
+# Self-grading
+
+## Delivarables
+
+**For the deliverables, we give a grade x.**
+
+For the most part, we are pleased with and proud of our project. We took great care in learning about the general theory of machine learning and different classifiers and their implementations. We prepared all our deliverables according to the instructions, and to the best of our ability. We specifically took the time  to write a clear and high-quality report on our approach.
+
+There are some specific issues that we're not completely satisfied with in retrospect. The first being the preprocessing of the data, and the second being the final accuracy and the details surrounding that.
+
+A main contributor to the first problem was probably our work order: we wanted to preprocess the data, and then train and test the models. However, the course had not covered preprocessing while we were working on it, and although we consulted the course book liberally, our understanding and therefore the end result ended up being somewhat lackluster and disorganized.
+
+For example, to reduce multicollinearity, we discarded most of the measurements at different heights because of the high correlation coefficients, and for many models this resulted in a higher accuracy and lower perplexity than what we achieved with the original dataset. Great! On the other hand, we left in the highly correlated radiation-related variables without much discussion or explanation. In short, we started with a preprocessing approach but did not see it to the end.
+
+(Sara: muita preprocessing-probleemoja tai vastaavia, joita haluatte nostaa)
+
+The second problem is perhaps not as grave as the first. Especially in our challenge submission, our accuracy (0.84 for two classes and 0.68 for four) and perplexity (1.47) were not all that great. We agreed before submitting the results that we are not aiming to win anything, and the submission itself is enough. We stand by this. We still could have done better in predicting our own results, and we set to rectify this in our final report. 
+
+Towards the 11th of December, we also found that many of our tree-based methods perform as well or better than logistic regression. If we had found this out earlier, we might have opted for a tree-based method as our final classifier. At that point we did not want to discard the work we had done so far, and opted to try to improve our logistic regression model.
+
+
+## Group as a whole
+
+**For the group, we give a grade 5.**
+
+We met very soon after being assigned to a group, and started planning and dividing work immediately. We agreed to use several different communication and project management tools, and while working settled on Telegram and weekly face-to-face meetings for communication, Excel for task management and storing key results, and Github for version control. We knew from the start that one member of the group would be absent during the week of the presentations, and planned accordingly.
+
+In our group we had three majors represented: computer science, statistics and mathematics. We all had prior (but differing levels of) experience with R, and not much experience with machine learning. We were able to use our individual experiences to our advantage both in our discussions and while working on our R implementations and the report: we could clarify some of the more difficult concepts together, help each other with R troubleshooting, and read and comment on each other's work.
+
+It was easy for us to trust each other's opinions and implementations, and trust that the agreed upon work gets done well and on time. At times, there were some lulls in the workflow and frustration because of R difficulties, but we were able to solve these situations quickly. We also felt similarly about our deliverables in the end: excellent in some ways, but lacking in others. We were able to have some very constructive discussions about this that highlighted the good atmosphere in the group, and how much we learned during the course to be able to spot the shortfalls in our approach.
+
+\newpage 
+
+# Appendices
+
+## Appendix A
+
+```{r}
+summary(npfOrig)
+```
+
