@@ -65,9 +65,9 @@ npf<-npf[,-c(1,2,4)]
 
 Now we are left with our variable of interest, as well as 100 explanatory variables.
 
-The key objective in this project, classifying NPF event and nonevent days correctly, is an example of *supervised learning*: our data set contains the correct classes, and we can use these in the training of our models. With *unsupervised learning* we can look for insights into the data without using the known classes. There are many different types of unsupervised learning, discussed in [@book, p.497-552], but since our goal is classification, we focus on *cluster analysis*. This means that we look for subgroups of similar observations. In particular, we use K-means clustering to see if we can easily differentiate between event and nonevent days, and between event types Ia, Ib, II and nonevent, without using the given classes except to validate the results. The K-means clustering algorithm starts by assigning each observation to a cluster at random. At every iteration, the algorithm computes a *cluster centroid*, a vector of the variable means for each observation in the *k*th cluster, and then reassigns each observation to the cluster with the nearest centroid. The nearest centroid is the one to which an observation has the smallest Euclidean distance. 
+The key objective in this project, classifying NPF event and nonevent days correctly, is an example of *supervised learning*: our data set contains the correct classes, and we can use these in the training of our models. With *unsupervised learning* we can look for insights into the data without using the known classes. There are many different types of unsupervised learning, discussed in the course material [@book, p.497-552], but since our goal is classification, we focus on *cluster analysis*. This means that we look for subgroups of similar observations. In particular, we use K-means clustering to see if we can easily differentiate between event and nonevent days, and between event types Ia, Ib, II and nonevent, without using the given classes except to validate the results. The K-means clustering algorithm starts by assigning each observation to a cluster at random. At every iteration, the algorithm computes a *cluster centroid*, a vector of the variable means for each observation in the *k*th cluster, and then reassigns each observation to the cluster with the nearest centroid. The nearest centroid is the one to which an observation has the smallest Euclidean distance. 
 
-Recall that we have daily means and standard deviations in the dataset. For the purposes of K-means clustering, we restrict ourselves to the means, and because the variables are measured on very different scales, we normalize them to have zero mean and unit variance with the *scale* function. The random cluster assignments tend to have an effect on the end result, so we run the *kmeans* function with 1000 random starting points, and look at the best result. With 2 clusters, the confusion matrix given by the *solve_LSAP* function from the [@clue] package that matches the clusters with the known classes, is as follows:
+Recall that we have daily means and standard deviations in the dataset. For the purposes of K-means clustering, we restrict ourselves to the means, and because the variables are measured on very different scales, we normalize them to have zero mean and unit variance with the *scale* function. The random cluster assignments tend to have an effect on the end result, so we run the *kmeans* function with 1000 random starting points, and look at the best result. With 2 clusters, the confusion matrix given by the *solve_LSAP* function from the clue[@clue] package that matches the clusters with the known classes, is as follows:
 
 ```{r}
 ## choose variables whose names end with ".mean" together with "class4"
@@ -271,7 +271,7 @@ Based on this, we might as least preliminarily be interested in measurements of 
 
 ### Correlation between variables
 
-The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response. Let's visualize these correlations with R package [@corrplot2021]
+The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response. Let's visualize these correlations with R package corrplot2021[@corrplot2021]
 
 ```{r original correlation plot, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 library(corrplot)
@@ -314,7 +314,7 @@ Specifically, the two measures we used to assess the quality of each model were 
 
 Perplexity instead expresses the relative confidence in those predictions. The models we use give estimated probabilities $\hat{p}(\hat{y_i}=y)$ that the datapoints $\hat{y_i}$ we're predicting receive specific values $y$. Thus, if the model is descriptive of the phenomena which create the dataset, it would seem reasonable that for the actual realized values $y$ the measure $\hat{p}(\hat{y_i}=y)$ would be relatively high. Thus its logarithmic transformation $\log(\hat{p}(\hat{y_i}=y))$ would also be able to receive high values, and similarly $-\log(\hat{p}(\hat{y_i}=y))$ and $e^{-\log(\hat{p}(\hat{y_i}=y))}$ would receive small values. Thus we can use as a corresponding overall measure for the dataset the measurement $e^{-\frac{\sum_{i=1}^n\log(\hat{p}(\hat{y_i}=y_{i}))}{n}}$ where $y_i$ are realized values of the observations we're attempting to assess through $\hat{y_i}$. As $\hat{p}(y_i=y)\in [0,1]$ for all $\log(\hat{p}(y_i=y)) \le 0$ for all y. Thus, all values of our general perplexity measure are within interval $[1,\infty)$ and smaller values are preferred.
 
-However, it is not sufficient to simply define the model on the training dataset and assess accuracy and perplexity on said training dataset as this would woefully inflate the accuracy assessment and deflate the perplexity assessment of the model on a general dataset. We instead attempted to assess accuracy and perplexity through cross-validation methods, specifically leave-one-out cross-validation (loo-cv). The idea behind loo-cv according to the course material [@book, p. 200-202] is that for each observation in the training dataset, a model is trained based on all other observations in the dataset. This new model is then used to predict the training dataset value that was left out of defining the model. With this method, we receive based on observations of explanatory variables both predicted values and estimates of probabilities for specific events for each measurement in a way that didn't include the observations in both defining the model training and assessing its quality. Thus, we can use these measures in our accuracy and perplexity calculations to better assess how the model using all the observations in the training dataset behaves on a completely separate test dataset.
+However, it is not sufficient to simply define the model on the training dataset and assess accuracy and perplexity on said training dataset as this would woefully inflate the accuracy assessment and deflate the perplexity assessment of the model on a general dataset. We instead attempted to assess accuracy and perplexity through cross-validation methods, specifically leave-one-out cross-validation (loo-cv). The idea behind loo-cv according to the course material [@book, p. 200-202], is that for each observation in the training dataset, a model is trained based on all other observations in the dataset. This new model is then used to predict the training dataset value that was left out of defining the model. With this method, we receive based on observations of explanatory variables both predicted values and estimates of probabilities for specific events for each measurement in a way that didn't include the observations in both defining the model training and assessing its quality. Thus, we can use these measures in our accuracy and perplexity calculations to better assess how the model using all the observations in the training dataset behaves on a completely separate test dataset.
 ```{r preprocess data, echo=FALSE}
 # Sample half of the data for training and testing sets
 set.seed(42)
@@ -342,11 +342,11 @@ According to the course material [@book, p. 102], Variance inflation factors (VI
 
 As removing one explanatory variable effects the VIFs of all other variables, we chose to implement an iterative process to remove variables based on VIFs. After defining a logistic regression model with all explanatory variables, we calculated the VIFs, assessed which variable had the highest VIF, removed both this variable and the other variable describing the same set of observations (if a mean variable had the highest VIF, we would also remove the corresponding standard deviation and if a standard deviation variable had the highest VIF, we would also remove the corresponding mean variable). We decided to do this as it felt imprudent to choose to not include one descriptor of an observation in the baseline model which we're assessing while including the other one. After this, we would repeat the process until the highest VIF value for a variable was less than 10. The choice of the limit was based on descriptions in the course material.
 
-After this, we had a remaining set of 18 explanatory variables, which we modelled using logistic regression. After checking the coefficients, there were still variables for which the Wald tests gave relatively high p-values for hypotheses involving non-zero coefficients. In order to deal with this, we set those coefficients equal to zero and assessed the model with the remaining explanatory variables. Through this, we received a simpler model with  explanatory variables.
+After this, we had a remaining set of 18 explanatory variables, which we modeled using logistic regression. After checking the coefficients, there were still variables for which the Wald tests gave relatively high p-values for hypotheses involving non-zero coefficients. In order to deal with this, we set those coefficients equal to zero and assessed the model with the remaining explanatory variables. Through this, we received a simpler model with  explanatory variables.
 
 ### Lasso regression
 
-Lasso regression has obvious links to logistic regression but it includes a penalty term which punishes models with high values of coefficients. According to the course material [@book, p. 241-242] in comparable linear regression minimizing squared error, the minimizable function is the sum of the squared error terms and $\sum_{i=1}^n \gamma |\lambda_i|$ where $\gamma>0$. We similarly as in logistic regression assess coefficients for a model that describes parameter $q$ of a binomial model that minimizes this function.
+Lasso regression has obvious links to logistic regression but it includes a penalty term which punishes models with high values of coefficients. According to the course material [@book, p. 241-242], in comparable linear regression minimizing squared error, the minimizable function is the sum of the squared error terms and $\sum_{i=1}^n \gamma |\lambda_i|$ where $\gamma>0$. We similarly as in logistic regression assess coefficients for a model that describes parameter $q$ of a binomial model that minimizes this function.
 
 One of the benefits of Lasso regression according to the High-Dimensional Statistics course material [@Lasso] is that including this penalty term in the optimization process with correlated variables leads to simpler models with fewer explanatory variables, as also lower-dimensional models lead are preferred. Thus, the lasso model in and of itself can remove variables which are highly correlated with other variables from the model and thus at least alleviate multicollinarity within the model. However, according to the High-Dimensional Statistics course material [@Lasso], selection between possible correlated variables might with extremely highly correlated variables break down due to there being multiple optima. Thus, it seems reasonable to note that with as highly correlated variables as the ones we're dealing with, the model might not properly describe the data-generating process but instead simply choose the variables that happen to create a slightly fit better on the training data.
 
@@ -354,7 +354,7 @@ In terms of our modelling, we decided to use Lasso instead of a comparable metho
 
 ### Generative models
 
-In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models are covered in [@book, p.141-158]. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
+In logistic regression models, we directly model $p(Y|X)$, i.e. the conditional distribution of the response $Y$ given the predictors $X$. Generative models are covered in the course material [@book, p.141-158]. Generative models offer a less direct approach, where the focus is in modeling $p(X|Y)$ and using these estimates to estimate $p(Y|X)$ for each possible class $k$ with Bayes' theorem:
 \begin{equation*}
 p(Y=k|X) = \frac{\pi_k p(X|Y=k)}{\sum_i \pi_i p(X|Y=i)}.
 \end{equation*}
@@ -362,7 +362,7 @@ Here $pi_k$ is an estimate of the prior probability that a random observation co
 
 While the general approach is the same for all generative models, they differ in how they estimate $p(X|Y)$. In a dataset with $p$ predictors, estimating $p(X|Y)$ amounts to estimating a $p$-dimensional density function for an observation in the $k$th class. The task is challenging, as we must consider the distribution of each predictor on its own *and* the joint distribution of the predictors. Different models make different assumptions that mitigate the difficulty.
 
-#### Linear Discriminant Analysis
+#### Linear Discriminant Analysis \
 
 A linear discriminant analysis (LDA) classifier assumes that all $p$ predictors $X = (X_1, \dots, X_p)$ are drawn from a multivariate Gaussian distribution. This means that each predictor follows a normal distribution $N(\mu_k, \Sigma)$ where $\mu_k$ is the class-specific mean and $\operatorname{Cov}(X) = \Sigma$ the covariance matrix of $X$, and there is some correlation between each pair of predictors. The estimate of $p(X|Y)$ is
 \begin{equation*}
@@ -377,9 +377,9 @@ The covariance matrix being the same for all classes is a defining feature of li
 
 For linear discriminant analysis to work, it is important to have enough observations with regards to the number of predictors, as performance suffers greatly as the number of predictors approaches the number of observations.
 
-In our modeling, we used the function lda from the package [@MASS]. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
+In our modeling, we used the function lda from the package MASS[@MASS]. We tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
 
-#### Quadratic Disriminant Analysis 
+#### Quadratic Disriminant Analysis \
 
 The assumption that the covariance matrix is shared for all classes is quite strict. Allowing each class to have it's own covariance matrix brings us to quadratic discriminant analysis (QDA). The observations are still assumed to be drawn from a multivariate Gaussian distrbution with a class-specific mean vector, so otherwise the assumptions remain the same as in LDA. Each predictor now follows a normal distribution $N(\mu_k, \Sigma_k)$. The expression to be maximized is 
 \begin{align*}
@@ -387,9 +387,9 @@ The assumption that the covariance matrix is shared for all classes is quite str
 \end{align*}
 Generally, quadratic discriminant analysis is expected to perform better that linear discriminant analysis on large data sets, but as in linear discriminant analysis, the number of predictors must be small enough to produce decent results. Quadratic discriminant analysis is also recommended when the assumption that all classes share a covariance matrix is clearly unfounded.
 
-In our approach, we used the qda function from the [@MASS] package, and as with linear discriminant analysis, tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
+In our approach, we used the qda function from the MASS[@MASS] package, and as with linear discriminant analysis, tested the performance of the model on the dataset with observations measured at multiples only observed at 16.8 meters.
 
-#### Naive Bayes
+#### Naive Bayes \
 
 A naive Bayes classifier makes no assumptions on the distribution of the observations, and instead assumes that within the *k*th class, the *p* predictors are independent. In other words, the assumption is that there is no association between the predictors, and therefore no joint distribution to consider. With this, the posterior probability can be computed as
 \begin{equation*}
@@ -397,7 +397,7 @@ p(Y=k|X) = \frac{\pi_k p(X_1|Y=k) \cdots p(X_p|Y=k)}{\sum_i \pi_i p(X_1|Y=i) \cd
 \end{equation*}
 In a naive Bayes model, there are a few possible ways to estimate $p(X|Y)$. For quantitative predictors such as ours, we assume that within each class, the *j*th predictor is drawn from a univariate normal distribution, i.e. $X_j|Y = k \approx N (\mu_{jk}, \sigma^2_jk)$.
 The assumption of independence between predictors is often not realistic, but the model can perform well nonetheless. This is especially true for small datasets, since estimating a joint distribution requires a large amount of data. 
-We used the naiveBayes function from the package [@e1071] and the original dataset.
+We used the naiveBayes function from the package e1071[@e1071] and the original dataset.
 
 
 ### Support Vector Classifiers
@@ -421,16 +421,15 @@ In tree-based methods, the data points are divided into smaller and smaller frag
 
 We tried some tree-based models, but didn't have time to finish any of them before submitting the preliminary report. Therefore, we didn't end up selecting any of them as our classifier, even though they gave quite good results. The calculations for the tree-based models have been done after submitting the initial results and selecting another classifier, so their main function was to test the chosen classifier and compare its performance to other options that we could have chosen.
 
-#### Random Forest
+#### Random Forest \
 
-One often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
+One often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R package randomForest[@randomForest].
 
 We tried the model with different parameters and with both the full dataset and the dataset with 36 variables, of which the model with all the variables performed a little better. We used that model as our Random Forest classifier in the comparison.
 
+#### GBM \
 
-#### GBM
-
-Another tree-based model that we used was GBM (gradient boosting machine). It starts by building a set of shallow trees, but with each iteration, it learns more about the data and improves each previously built tree. By finally combining the trees, it can produce very good models for all types of data sets. It's advantage is that it doesn't necessarily require any pre-processing of the data, although the model can be improved by this. For GBM classifier, we used the R library *GBM*.
+Another tree-based model that we used was GBM (gradient boosting machine). It starts by building a set of shallow trees, but with each iteration, it learns more about the data and improves each previously built tree. By finally combining the trees, it can produce very good models for all types of data sets. It's advantage is that it doesn't necessarily require any pre-processing of the data, although the model can be improved by this. For GBM classifier, we used the R library gbm[@gbm].
 
 We tried also this method with both the full dataset and the 168 dataset, which both gave very similar result. The model built with the 168 dataset, however, performed slightly better, so we selected that as the one to include in the comparison. Further pre-processing and variable selection didn't improve the model. We tried the model with different parameters, but in the end, couldn't produce better classifier than the ones we already had.
 
@@ -456,7 +455,7 @@ GBM &	0.8943966 & 1.324385 & 0.8746114 \\
 \end{tabular}
 \end{table}
 
-We also calculated for curiosity's sake the binary accuracies on the npf_test data on some of our models as can be seen above (eventually we came up with the idea very late and thus didn't have time to run it for LDA, QDA and Naive Bayes), even though these results were not part of the process of choosing our model.
+We also calculated for curiosity's sake the binary accuracies on the npf_test data on some of our models as can be seen above, even though these results were not part of the process of choosing our model.
 
 ## Chosen classifier
 
@@ -487,7 +486,7 @@ In our model, we used the full dataset with no removed explanatory variables as 
 
 Eventually, we chose to emphasize class2 accuracy, and as a result our final predictions are based on estimating models for both class2 and class4. We first used our model for class2 to predict whether a value would be an event or not and for values the model assessing class2 predicted to be event-days, we referred to our class4 model to estimate which of the event classes had the highest probability.
 
-
+\newpage
 
 # Results
 
