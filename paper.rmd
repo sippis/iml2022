@@ -614,4 +614,5 @@ It was easy for us to trust each other's opinions and implementations, and trust
 ```{r}
 summary(npfOrig)
 ```
-
+\newpage
+# References
