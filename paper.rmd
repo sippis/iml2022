@@ -424,91 +424,161 @@ A often used tree-based classification method is called Random Forest. It is bas
 
 In order to reduce knitting time for the file, we will in this report instead of expressing the full R code to calculate the values, simply report the results we received. The results for the two-class models in terms of loo-cross-validated accuracy and perplexity are:
 \begin{table}
-\begin{tabular}{|r|cc|}
+\begin{tabular}{|r|ccc|}
 \hline
-Model type & loo-cv accuracy & loo-cv perplexity\\
+Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data\\
 \hline
-Dummy model & 0 & 2.01\\
-Logistic regression & 0.89 & 1.30\\
-Naive Bayes & 0.81 & 152.85\\
-LDA & 0.89 & 1.33\\
-QDA & 0.85 & 6.34\\
-SVM & 0.88 & 1.34\\
-Lasso & 0.89 & 1.29\\
-Random Forest & 0.89 & 1.35\\
-\hline
-\end{tabular}
-\end{table}
-
-## Chosen classifier, pros and cons of this particular classifier for this application
-
-With our observed best-performing models being the logistic regression model, the random forest model, the Lasso regression model and the linear discriminant analysis. Out of these models, we eventually chose to use the logistic regression model. The Lasso model was our best-performing model, but we eventually chose not to use it for practical reasons related to computational heaviness in calculating the multi-class model. Mainly, the amount of information we could gain through calculations in R without R crashing was relatively limited, to the degree that we couldn't always even calculate the cross-validated best choice for the tuning parameter. We could consider running the models again with a smaller amount of folds in the cross-validation, as that might according to the course material [@book] give more accurate estimates, and thus the model would be runnable. However, for the moment we preferred our current approach as with Lasso we couldn't choose which variables to use in the model, which might not be preferrable in further analyses.
-
-We eventually also chose to not use the LDA model after assessing the assumptions related to the model. LDA models have been found to perform best with a limited amount of variables and we still question whether we should attempt to reduce the amount of variables from the model further from the current amount of 38 from the model. On top of this, considering the assumption of equal variances, the boxplots we drew earlier in the report imply that class "nonevent" might have larger variance for some variables than class "event".
-
-We made the decision of model based on preliminary results, and though classification trees would represent an equally viable solution, we calculated those results only later on, and by that point had already calculated the results for the logistic regression model. However, for the final report we might consider transitioning to the classification tree model.
-
-Thus we were left with the logistic regression model, which was also lower-dimensional than many of the other models with only 10 explanatory variables. However, we could question in relation to this model whether there is sufficient basis to for example remove certain variables, which might describe relevant information, as well as for example whether including an intercept in the model would be meaningful in terms of interpretation. Currently, several of these decisions are based on Wald tests performed within the R [@RDCT2008] function glm, which was pursued in an attempt to create a lower-dimensional model.
-
-## Multiclass-classifier
-We will extend the logistic regression model into a multinomial logistic regression model in order to assess the multi-class accuracy for our model. According to the course material [@book, p. 140-141], the basic idea of multinomial logistic regression here is that out of $K$ classes we choose a baseline value of our variable of interest, and compare other values to it, leading to $p(Y=k|X=x)=\frac{e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}{1+\sum_{k=1}^{K-1} e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}$ where our baseline class is class $K$. Alternatively, we can use equivalent so-called softmax coding where we treat all classes equivalently and thus $p(Y=k|X=x)=\frac{e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}{\sum_{k=1}^K-1 e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}$. The interpretation of logistic regression coefficients comes now from the following: $\log(\frac{p(\hat{y}_i=k_a)}{p(\hat{y_i}=k_b)})=(\lambda_{a0}-\lambda_{b0})+\sum_{j=1}^n(\lambda_{aj}-\lambda_{bj})x_{ij}$. Thus the interpretation of these coefficients is in relation to the difference of the coefficients for different classes and describe the ratio between the probabilities that our variable of interest receives a value in one of these two classes.
-
-Similarly as in logistic regression, we attempt to define coefficients $\lambda_j$ in a way that maximizes likelihood.
-
-In our model, we used the same dataset as in our binary logistic regression model, in order to avoid issues of multicollinearity. In order to define this model, we used function multinom from R package nnet [@nnet] with softmax coding. This creates estimated probabilities $\hat{p}(\hat{y}_i=y)$ for all four classes $y$, and through that we could calculate loo-cross-validated values for accuracy as well as perplexity.
-
-Eventually, we chose to emphasize class2 accuracy, and as a result our final predictions are based on estimating models for both class2 and class4. We first used our model for class2 to predict whether a value would be an event or not and for values the model assessing class2 predicted to be event-days, we referred to our class4 model to estimate which of the event classes had the highest probability.
-
-# Results
-
-We eventually have a logistic regression model with 10 explanatory variables which we assume describe the probability of a specific day being an event day. The coefficients of the model are:
-
-\begin{table}
-\begin{tabular}{|r|c|}
-\hline
-Explanatory variable & Estimate of coefficient\\
-\hline
-CO2168.mean&-0.08822672\\
-CO2168.std&0.16589906\\
-H20168.mean&-0.75608185\\
-NO168.mean&-6.45258751\\
-NO168.std&4.78466706\\
-Pamb0.std&0.52939712\\
-RHIRGA168.mean&-0.07244430\\
-RHIRGA168.std&0.19476210\\
-SWS.mean&0.04494533\\
-SWS.std&0.01404611\\
+Dummy model & 0 & 2.01&\\
+Logistic regression & 0.87 & 1.36&0.84\\
+Naive Bayes & 0.81 & 152.85&\\
+LDA & 0.89 & 1.33&\\
+QDA & 0.85 & 6.34&\\
+SVM & 0.88 & -&0.84\\
+Lasso & 0.89 & 1.29&0.87\\
+Random Forest & 0.89 & 1.35&\\
 \hline
 \end{tabular}
 \end{table}
 
-There are a few things of note about this model. First, it does not have an intercept, which implies that if all observations are at zero, the probability of an event would be 0.5. The validity of this assumption should be studied further in relation to the relevant qualities of NPF events. Second, we notice that we have especially high absolute values of coefficients for the variables related to the variables related to nitrous oxide, though said coefficients also have high standard errots. On top of this, we notice that mostly variables describing means have negative coefficients whereas variables describing standard deviations have positive coefficients. One possible interpretation could be that though lower values of the measurements in question throughout the day increase event probability, simply measuring the mean might not be sufficient, and instead questions of the variations throughout the day are relevant as well, specifically the positive coefficients imply that higher variation or for example higher extreme values within the day increase event probability.
+## Chosen classifier, pros and cons of this particular classifier for this application 
 
-In terms of accuracy, let's observe results by class and see what types of events our model recognizes well:
+  
 
-\begin{table}
-\begin{tabular}{|r|cc|}
-\hline
-Used model&Observations in class&Accuracy of predictions for event-type\\
-\hline
-Binary model&Event&0.887931\\
-Binary model&Nonevent&0.8922414\\
-Multinomial model&Ia&0.05882353\\
-Multinomial model&Ib&0.4235294\\
-Multinomial model&II&0.5840708\\
-\hline
-\end{tabular}
-\end{table}
+(Of note: the model is different from the one we originally used in the preliminary report and in the video, mostly because we noticed in our cross-validation calculations a reference error, which led to the loo-CV predictions being done on a dataset with including all observations, including the one being predicted, which naturally inflated our estimates of accuracy. When we noticed this error, we felt that no other models of the ones that had been observed were sufficiently close in terms of estimated perplexity so we chose to run Lasso with reduced amount of folds). 
 
-In terms of the binary model, we have rather similar accuracies for both event days and nonevent days. However, we also notice in terms of multiclass accuracy that while the model predicts in particular nonevents rather well, the LOO-cross-validated predictions are less successful for calculating distinct event types. For example, less than 10% of days which belonged to class Ia were predicted into said class. As a result, further changes should be made to the model in the future to improve these predictions.
+  
 
-## Insights, conclusions, discussion etc.
+With our observed best-performing models being the the random forest model, the Lasso regression model and the linear discriminant analysis. Out of these models, we eventually chose to use the Lasso model as it was the best-performing model. The amount of information we could gain through CV calculations in R without R crashing were relatively limited, to the degree that we couldn't usually even calculate the cross-validated best choice for the tuning parameter. As a result, we chose to forego cross-validation in relation to our multinomial model. 
 
-In order to improve the model, we could ask several different questions concerning the approach we wound up with. First, in terms of variable selection, the measure of standard deviations per day within variables feels somewhat questionable in two different ways: first, it seems relevant to ask what the standard deviation expresses about the phenomena themselves, and whether different kinds of measurements could capture the relevant expressive ideas better, or whether these relevant expressive ideas even exist. Second, since we're assuming in our logisitic regression model that the relationship is a linear combination or at least a linear combination of polynomials of the explanatory variables is relevant: why standard deviation and not variance? For this report, as we don't know sufficienty about the NPF event phenomenon itself, we will simply assume that the standard deviation variables are reasonable within our model and that this scaling is reasonable.
+  
 
-Second, in terms of our variable selection process through VIF and Wald tests, said process is rather simple and could be improved. The VIF iterations also remove corresponding mean and standard deviation variables even if their VIFs are smaller. This was done as the goal of the VIF process was to reduce the amount of phenomena to be observed to as small a collection as seems reasonable, and thus the notion of removing only one of the two variables related to the phenomenon felt slightly odd. Then again, this process was not followed with the Wald tests, as the used interpretation of the Wald tests is specifically more about coefficient values than about the optimization issues caused by multicolinearity, which we chose to discuss the VIF results as. The validity of this approach especially in terms of the VIF process should be questioned, even though results where we run VIF iteratively and only remove the variable that has the highest VIF value gives us a fairly similar model (overall 11 coefficients and an intercept with mostly the same set of explanatory variables).
+We eventually also chose to not use the LDA model after assessing the assumptions related to the model. LDA models have been found to perform best with a limited amount of variables and we still question whether we should attempt to reduce the amount of variables from the model further from the current amount of 38 from the model. On top of this, considering the assumption of equal variances, the boxplots we drew earlier in the report imply that class "nonevent" might have larger variance for some variables than class "event". 
 
-Also, other variable selection processes such as Lasso (with less computationally expensive cross-validation) and PCA could be used equivalently. However, for the current report, we chose to use our current approach as our chosen method of assessing performance was LOO-CV and thus Lasso was computationally expensive for the multinomial model. Then again, a lower amount of folds in cross-validation could lead to better assessments of the accuracies, and thus be preferrable. We could have also used PCA but by using PCA, we'd lose the interpretability of the coefficients and when running the LOO-cv comparisons, we didn't see notable benefits in terms of accuracy or perplexity from using PCA on a larger collection of variables compared to our current approach of selecting a sufficiently small amount of explanatory variables.
+  
+
+We made the decision of model based on preliminary results, and though classification trees would represent an equally viable solution, we calculated those results only later on, and by that point had already calculated the results for the logistic regression model. However, for the final report we might consider transitioning to the classification tree model. 
+
+  
+
+Thus we were left with the Lasso model. However, we could question whether for example specific variables need to be observed based on other research, and Lasso doesn't offer possibilities for this. Because cross-validation with a smaller amount of folds can give varying results different times it has been run, we eventually chose to run the cross-validation several times, check the interval of values received this way, and make decisions based on this interval. 
+
+  
+
+## Multiclass-classifier 
+
+We will extend the logistic Lasso model into a multinomial model in order to assess the multi-class accuracy for our model. According to the course material [@book, p. 140-141], the basic idea of multinomial logistic regression here is that out of $K$ classes we choose a baseline value of our variable of interest, and compare other values to it, leading to $p(Y=k|X=x)=\frac{e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}{1+\sum_{k=1}^{K-1} e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}$ where our baseline class is class $K$. Alternatively, we can use equivalent so-called softmax coding where we treat all classes equivalently and thus $p(Y=k|X=x)=\frac{e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}{\sum_{k=1}^K-1 e^{\beta_{k0}+\sum_{j=1}^m\beta_{kj}x_{ij}}}$. The interpretation of logistic regression coefficients comes now from the following: $\log(\frac{p(\hat{y}_i=k_a)}{p(\hat{y_i}=k_b)})=(\lambda_{a0}-\lambda_{b0})+\sum_{j=1}^n(\lambda_{aj}-\lambda_{bj})x_{ij}$. Thus the interpretation of these coefficients is in relation to the difference of the coefficients for different classes and describe the ratio between the probabilities that our variable of interest receives a value in one of these two classes. 
+
+  
+
+Similarly as in the binary case, we attempt to define coefficients $\lambda_j$ in a way that maximizes the pe. 
+
+  
+
+In our model, we used the full dataset with no removed explanatory variables as we assumed the Lasso model itself would correct notable multicolinearity. In order to define this model, we used the same functions as with our binary model, cv.glmnet and glmnet from R package glmnet [@glmnet]. This creates estimated probabilities $\hat{p}(\hat{y}_i=y)$ for all four classes $y$, and through that we could calculate 10-fold cross-validated estimates for ideal values of the tuning parameter. 
+
+  
+
+Eventually, we chose to emphasize class2 accuracy, and as a result our final predictions are based on estimating models for both class2 and class4. We first used our model for class2 to predict whether a value would be an event or not and for values the model assessing class2 predicted to be event-days, we referred to our class4 model to estimate which of the event classes had the highest probability. 
+
+  
+
+# Results 
+
+Although we defined our result comparisons with loo-CV which has the benefit of returning consistent results when run several times, according to the course material [@book, p. 205-206], for example 5-or 10-fold cross-validation can give more accurate assessments of error rate. Thus, for our binary model we ran 10-fold cross-validation 50 times, and received estimated ideal tuning parameters in interval [0.002073489, 0.04902743]. We first considered using the mean of these values as our choice of tuning parameter but as the values are rather dispersed (56% of values having tuning parameters $\lambda<0.005$ but then again, we have approximately 30% of parameter values that are larger than $0.01$), we should consider a different approach. Eventually, in order to bridge the gap between the two sets of values, we chose to prefer a slightly larger value than the median yet slightly lower than the mean for $\lambda$ and thus chose value $0.0075$ for the tuning parameter. 
+
+  
+
+We eventually have a binary logistic regression model with explanatory variables which we assume describe the probability of a specific day being an event day. The coefficients of the model are: 
+
+  
+
+\begin{table} 
+
+\begin{tabular}{|r|c|} 
+
+\hline 
+
+Explanatory variable & Estimate of coefficient\\ 
+
+\hline 
+
+Intercept&16.16886\\ 
+
+CO2168.std&0.02065910\\ 
+
+CO242.mean&-0.04024650\\ 
+
+CO2504.mean&-0.02066992\\ 
+
+H2O42.mean&-0.2627714\\ 
+
+H2O84.std&-2.407117e-01\\ 
+
+NO168.std&2.281875\\ 
+
+NOx672.std&-0.06064781\\ 
+
+O3672.mean&0.09233133\\ 
+
+O384.std&0.03595632\\ 
+
+Pamb0.std&0.2960355\\ 
+
+PTG.mean&-15.19914\\ 
+
+RGlob.mean&0.001578964\\ 
+
+RHIRGA168.std&0.01765280\\ 
+
+RHIRGA336.mean&-0.02661884\\ 
+
+RHIRGA672.mean&-0.03528919\\ 
+
+RHIRGA672.std&0.06932797\\ 
+
+SO2168.std&0.7092859\\ 
+
+SWS.mean&0.01112000\\ 
+
+T168.std&0.4947142\\ 
+
+CS.mean&-938.8368\\ 
+
+CS.std&580.6009\\ 
+
+\hline 
+
+\end{tabular} 
+
+\end{table} 
+
+  
+
+There are a few things of note about this model. First, the intercept is fairly large, which implies that if all observations are at zero, the probability of an event would be very close to 1. The validity of this assumption should be studied further in relation to the relevant qualities of NPF events. Second, we notice that we have especially high absolute values of coefficients for the variables related to CS, although their somewhat high correlation (estimate 65%) and the small values received by both variables being rather small might explain this. Another thing we notice is that we have in particular variables related to the same phenomenon at different heights for the mean of carbon dioxide and the mean and standard deviation of RHIRGA. As we know these variables are highly correlated with each other, this ideal model might not be ideal. Then again, the coefficients are somewhat similar to each other and thus might simply describe an overall effect of the phenomenon (in a way reminiscent of optimization in Ridge regression). 
+
+  
+
+For our multinomial model, we simply chose to observe the performance of the model on the data with different values of tuning parameter $\lambda$ without cross-validation, as cross-validation even with a small number of folds couldn’t be calculated with R for reasons that apparently might have to do with the small amount of data. Here we chose the value based on the multiclass accuracy of the model being sufficiently high with a non-negligible value of $\lambda$.  We eventually chose a rather straightforward measure of choosing the largest value which led to over 50% of predictions being correct on the data on which it was being tested. The value was $\lambda=0.004$.  
+
+In terms of accuracy, we couldn’t calculate cross-validated predictions for our multinomial variable but let's observe results by class for our binomial model and see what types of events our model recognizes well. Approximately 88% of true event days were predicted to be event days and similarly approximately 88% of true nonevent days were predicted to be nonevent days. 
+
+In terms of the binary model, we have rather similar accuracies for both event days and nonevent days. However, we also notice in terms of multiclass accuracy that while the model predicts in particular nonevents rather well, the LOO-cross-validated predictions are less successful for calculating distinct event types. For example, less than 10% of days which belonged to class Ia were predicted into said class. As a result, further changes should be made to the model in the future to improve these predictions. 
+
+  
+
+## Insights, conclusions, discussion etc. 
+
+  
+
+In order to improve the model, we could ask several different questions concerning the approach we wound up with. First, in terms of variable selection, the measure of standard deviations per day within variables feels somewhat questionable in two different ways: first, it seems relevant to ask what the standard deviation expresses about the phenomena themselves, and whether different kinds of measurements could capture the relevant expressive ideas better, or whether these relevant expressive ideas even exist. Second, since we're assuming in our logistic regression model that the relationship is a linear combination or at least a linear combination of polynomials of the explanatory variables is relevant: why standard deviation and not variance? For this report, as we don't know sufficiently about the NPF event phenomenon itself, we will simply assume that the standard deviation variables are reasonable within our model and that this scaling is reasonable. 
+
+  
+
+Second, in terms of our Lasso model, there are two big questions: first, our approaches towards correcting model complexity are rather limited, we can only really change it through changing our tuning parameter. Through changing our tuning parameter, we could get simpler or more complex models that might perform better on test data and we could in theory attempt to assess the value of the tuning parameter further. The second question relates to specific explanatory variables. If we know that we want to specifically include some specific variable with a non-zero coefficient in the model based on for example previous studies, we couldn't implement it within our current Lasso model whereas this would be possible in for example a logistic regression model. Thus we lose a certain kind of fleixibility in terms of variable selection, though we gain at least a model that functions reasonably well on the data we have. 
+
+  
+
+Also, other variable selection processes for the same basic model (the logistic regression model) such as PCA could be used equivalently. However, for the current report, we chose to not use information criteria in relation to logistic regression models. We could have also used PCA but by using PCA, we'd lose the interpretability of the coefficients and when running the LOO-cv comparisons, we didn't receive better results in terms of accuracy or perplexity from using PCA compared to our current approach of selecting a sufficiently small number of explanatory variables through Lasso. 
 
 \newpage 
 
@@ -528,9 +598,11 @@ For example, to reduce multicollinearity, we discarded most of the measurements 
 
 (Sara: muita preprocessing-probleemoja tai vastaavia, joita haluatte nostaa)
 
-The second problem is perhaps not as grave as the first. Especially in our challenge submission, our accuracy (0.84 for two classes and 0.68 for four) and perplexity (1.47) were not all that great. We agreed before submitting the results that we are not aiming to win anything, and the submission itself is enough. We stand by this. We still could have done better in predicting our own results, and we set to rectify this in our final report. 
+The second problem is perhaps not as grave as the first. Especially in our challenge submission, our accuracy (0.84 for two classes and 0.68 for four) and perplexity (1.47) were not all that great. This was partially due to a coding error which made us choose a model that perhaps wasn't ideal, but there was still room for improvement even with our other models. We agreed before submitting the results that we are not aiming to win anything, and the submission itself is enough. We stand by this. We still could have done better in predicting our own results, and we set to rectify this in our final report. 
 
-Towards the 11th of December, we also found that many of our tree-based methods perform as well or better than logistic regression. If we had found this out earlier, we might have opted for a tree-based method as our final classifier. At that point we did not want to discard the work we had done so far, and opted to try to improve our logistic regression model.
+One of the other frustrations includes questions with our approach in relation to cross-validation. Perhaps the original choice of using loo-CV to assess the best model wasn't ideal and eventually in order to accomodate a lower amount of folds would have required us to possibly shift our entire approach from model accuracy and perplexity estimations to choice of ideal model and interpretation of said model as a result. Eventually we used a kind of messy half-measure where we decided our ideal model based on loo-CV and then for the model we used to predict the actual test data, we ran 10-fold cross validation to assess the ideal value of the tuning parameter. This was done to acknowledge the issues with the loo-CV even if, especially as we didn't enter into the contest with this model and for example the results in the table are still based on the loo-cv ideal model to compare it with the other models, and thus we didn't do much with the results we got.
+
+Towards the 11th of December, we also found that many of our tree-based methods perform as well or better than logistic regression. If we had found this out earlier, we might have opted for a tree-based method as our final classifier. At that point we did not want to discard the work we had done so far, and opted to try to improve our logistic regression model instead.
 
 
 ## Group as a whole
