@@ -271,7 +271,7 @@ Based on this, we might as least preliminarily be interested in measurements of 
 
 ### Correlation between variables
 
-The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response. Let's visualize these correlations with R package corrplot2021[@corrplot2021]
+The correlation between the predictors and the value to be predicted is a very natural starting point when it comes to correlation analysis. It is also possible that the predictors themselves are correlated. Many classifiers are affected by high correlation, i.e. *collinearity* between variables. In regression models, for example, it can be difficult to differentiate between the individual effects of collinear variables on the response. Let's visualize these correlations with R package corrplot[@corrplot2021]
 
 ```{r original correlation plot, echo=FALSE, fig.dim=c(7, 7), message=FALSE}
 library(corrplot)
