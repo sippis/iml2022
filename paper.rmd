@@ -426,19 +426,21 @@ The results for the two-class models in terms of loo-cross-validated accuracy an
 \begin{table}
 \begin{tabular}{|r|ccc|}
 \hline
-Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data\\
+Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data & Binary accuracy on npf_test\\
 \hline
 Dummy model & 0 & 2.01&\\
-Logistic regression & 0.87 & 1.36&0.84\\
-Naive Bayes & 0.81 & 152.85&\\
-LDA & 0.89 & 1.33&\\
-QDA & 0.85 & 6.34&\\
-SVM & 0.88 & -&0.84\\
-Lasso & 0.89 & 1.29&0.87\\
-Random Forest & 0.89 & 1.35&\\
+Logistic regression & 0.8728448 & 1.338286&0.8445596\\
+Naive Bayes & 0.81 & 152.85\\
+LDA & 0.89 & 1.33\\
+QDA & 0.85 & 6.34\\
+SVM & 0.8793103 & -&0.8435233\\
+Lasso & 0.8965517 & 1.29399&0.8746114\\
+Random Forest & 0.89 & 1.35\\
 \hline
 \end{tabular}
 \end{table}
+
+We also calculated for curiosity's sake the binary accuracies on the npf_test data on some of our models as can be seen above (eventually we came up with the idea very late and thus didn't have time to run it for LDA, QDA and Naive Bayes), even though these results were not part of the process of choosing our model.
 
 ## Chosen classifier
 
