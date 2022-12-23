@@ -422,7 +422,7 @@ We tried some tree-based models, but didn't have time to finish any of them befo
 #### Random Forest
 One often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
 
-We tried the model with both the full dataset and the dataset with 36 variables, of which the model with the fewer variables performed better. We used that model as our Random Forest classifier.
+We tried the model with both the full dataset and the dataset with 36 variables, of which the model with all the variables performed a little better. We used that model as our Random Forest classifier.
 
 
 #### GBM
@@ -446,7 +446,7 @@ LDA & 0.8922414 & 1.32923 &\\
 QDA & 0.8534483 & 6.34633 &\\
 SVM & 0.8793103 & -&0.8435233\\
 Lasso & 0.8965517 & 1.29399&0.8746114\\
-Random Forest & 0.89 & 1.35\\
+Random Forest & 0.887931 & 1.329754 & 0.8673575\\
 GBM &	0.8943966 & 1.324385 & 0.8746114 \\
 \hline
 \end{tabular}
