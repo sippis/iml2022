@@ -429,13 +429,13 @@ The results for the two-class models in terms of loo-cross-validated accuracy an
 Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data\\
 \hline
 Dummy model & 0 & 2.01&\\
-Logistic regression & 0.87 & 1.36&0.84\\
-Naive Bayes & 0.81 & 152.85&\\
-LDA & 0.89 & 1.33&\\
-QDA & 0.85 & 6.34&\\
-SVM & 0.88 & -&0.84\\
-Lasso & 0.89 & 1.29&0.87\\
-Random Forest & 0.89 & 1.35&\\
+Logistic regression & 0.8728448 & 1.338286\\
+Naive Bayes & 0.81 & 152.85\\
+LDA & 0.89 & 1.33\\
+QDA & 0.85 & 6.34\\
+SVM & 0.8793103 & -\\
+Lasso & 0.8965517 & 1.29399\\
+Random Forest & 0.89 & 1.35\\
 \hline
 \end{tabular}
 \end{table}
