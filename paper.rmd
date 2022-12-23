@@ -106,7 +106,7 @@ print(tt)
 ```
 K-means clustering assigns 178 observations to cluster 1 and 286 to cluster 2, so it does not quite catch the 50-50 division in the dataset. It has assigned 58% of nonevents to class 1, and 81% of events to class 2, which amounts to a total accuracy of 69% if we think of the clustering result as a classifier. With 4 clusters, the accuracy of our cluster-classifier drops down to 46%. The K-means algorithm cannot easily identify the correct event classes.
 
-```{r}
+```{r}0.8455959
 
 cl <- kmeans(scale(npf.means[, vars]),
   centers = 4, algorithm = "Lloyd", nstart = 1000, iter.max = 100
@@ -307,6 +307,7 @@ The correlation plot for the remaining variables shows us that the remaining hig
 # Classifier
 
 ## Description of considered machine learning approaches
+
 In order to use a model that describes the process that creates the data the best, we attempted to use several different kinds of models to assess the data. We test these models on the original dataset or on a suitably modified version of it. After defining each of these models, we would assess which of the models we used performed best and use said model in our predictions.
 
 Specifically, the two measures we used to assess the quality of each model were its accuracy and perplexity. We defined accuracy similarly as in the course material [@book, p. 37] as simply the relative amount of values the model predicted correctly, expressed mathematically for variables of interest $y_i$ and related predictions $\hat{y}_i$ as $\frac{\sum_{i=1}^{n}I(y_i=\hat{y}_i)}{n}$. This measures whether the model defines the labels correctly. All values naturally receieve values within interval $[0,1]$ and higher values imply better results.
@@ -413,19 +414,22 @@ Other benefits benefits of using support vector classifiers according to the cou
 
 For our model, we used functions tune and svm from R package e1071 [@e1071]. We chose to run a 10-fold cross validation on a set of tuning parameters $C$ to assess which kernel performed best and chose to model the value based on that. In these preliminary assessments, we assessed the radial and linear kernels had the best performance of the ones available in package e1071. For these kernels, we ran loo-cross validation to assess the value of tuning parameter $C$ and calculated for said tuning parameter loo-cross-validated accuracy and perplexity. Eventually, the radial kernel had slightly better accuracy but the linear kernel had lower perplexity and as a result, we chose to use the linear kernel in our model.
 
+
 ### Classification trees
 
-In tree-based methods, the data points are divided into smaller and smaller fragments based on some set of rules. A new split happens at each node, so when the size of the tree grows, it becomes more and more fitted to the data. When fitting classification trees, the process is often first started with a very large tree, and then the unnecessary branches are removed in the process of pruning, until the complexity of the tree is reduces to the optimal level. Constructing the trees, pruning, and evaluating the results can be done in a variety of different ways.
+In tree-based methods, the data points are divided into smaller and smaller fragments based on some set of rules. A new split happens at each node, so when the size of the tree grows, it becomes more and more fitted to the data. When fitting classification trees, the process is often first started with a very large tree, and then the unnecessary branches are removed in the process of pruning, until the complexity of the tree is reduces to the optimal level. Constructing the trees, pruning, and evaluating the results can be done in a variety of different ways.[@book, p. 328-361]
 
 We tried some tree-based models, but didn't have time to finish any of them before submitting the preliminary report. Therefore, we didn't end up selecting any of them as our classifier, even though they gave quite good results. The calculations for the tree-based models have been done after submitting the initial results and selecting another classifier, so their main function was to test the chosen classifier and compare its performance to other options that we could have chosen.
 
 #### Random Forest
+
 One often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
 
-We tried the model with both the full dataset and the dataset with 36 variables, of which the model with all the variables performed a little better. We used that model as our Random Forest classifier.
+We tried the model with different parameters and with both the full dataset and the dataset with 36 variables, of which the model with all the variables performed a little better. We used that model as our Random Forest classifier in the comparison.
 
 
 #### GBM
+
 Another tree-based model that we used was GBM (gradient boosting machine). It starts by building a set of shallow trees, but with each iteration, it learns more about the data and improves each previously built tree. By finally combining the trees, it can produce very good models for all types of data sets. It's advantage is that it doesn't necessarily require any pre-processing of the data, although the model can be improved by this. For GBM classifier, we used the R library *GBM*.
 
 We tried also this method with both the full dataset and the 168 dataset, which both gave very similar result. The model built with the 168 dataset, however, performed slightly better, so we selected that as the one to include in the comparison. Further pre-processing and variable selection didn't improve the model. We tried the model with different parameters, but in the end, couldn't produce better classifier than the ones we already had.
@@ -437,13 +441,13 @@ The results for the two-class models in terms of loo-cross-validated accuracy an
 \begin{table}
 \begin{tabular}{|r|ccc|}
 \hline
-Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data & Binary accuracy on npf_test\\
+Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data\\
 \hline
 Dummy model & 0 & 2.01&\\
 Logistic regression & 0.8728448 & 1.338286&0.8445596\\
-Naive Bayes & 0.8125 & 166.084 &\\
-LDA & 0.8922414 & 1.32923 &\\
-QDA & 0.8534483 & 6.34633 &\\
+Naive Bayes & 0.8125 & 166.084 & 0.8 \\
+LDA & 0.8922414 & 1.32923 &  0.8715026\\
+QDA & 0.8534483 & 6.34633 & 0.8455959\\
 SVM & 0.8793103 & -&0.8435233\\
 Lasso & 0.8965517 & 1.29399&0.8746114\\
 Random Forest & 0.887931 & 1.329754 & 0.8673575\\
@@ -494,65 +498,35 @@ Although we defined our result comparisons with loo-CV which has the benefit of 
 We eventually have a binary logistic regression model with explanatory variables which we assume describe the probability of a specific day being an event day. The coefficients of the model are:
 
 
-
-\begin{table}
-
+\begin{table}[!htbp]
 \begin{tabular}{|r|c|}
-
 \hline
-
 Explanatory variable & Estimate of coefficient\\
-
 \hline
-
 Intercept&16.16886\\
-
 CO2168.std&0.02065910\\
-
 CO242.mean&-0.04024650\\
-
 CO2504.mean&-0.02066992\\
-
 H2O42.mean&-0.2627714\\
-
 H2O84.std&-2.407117e-01\\
-
 NO168.std&2.281875\\
-
 NOx672.std&-0.06064781\\
-
 O3672.mean&0.09233133\\
-
 O384.std&0.03595632\\
-
 Pamb0.std&0.2960355\\
-
 PTG.mean&-15.19914\\
-
 RGlob.mean&0.001578964\\
-
 RHIRGA168.std&0.01765280\\
-
 RHIRGA336.mean&-0.02661884\\
-
 RHIRGA672.mean&-0.03528919\\
-
 RHIRGA672.std&0.06932797\\
-
 SO2168.std&0.7092859\\
-
 SWS.mean&0.01112000\\
-
 T168.std&0.4947142\\
-
 CS.mean&-938.8368\\
-
 CS.std&580.6009\\
-
 \hline
-
 \end{tabular}
-
 \end{table}
 
 
@@ -587,9 +561,9 @@ Also, other variable selection processes for the same basic model (the logistic 
 
 # Self-grading
 
-## Delivarables
+## Deliverables
 
-**For the deliverables, we give a grade x.**
+**For the deliverables, we give a grade 4.**
 
 For the most part, we are pleased with and proud of our project. We took great care in learning about the general theory of machine learning and different classifiers and their implementations. We prepared all our deliverables according to the instructions, and to the best of our ability. We specifically took the time  to write a clear and high-quality report on our approach.
 
