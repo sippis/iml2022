@@ -415,9 +415,20 @@ For our model, we used functions tune and svm from R package e1071 [@e1071]. We 
 
 ### Classification trees
 
-In tree-based methods, the data points are divided into smaller and smaller fragments based on some set of rules. A new division happens at each branch, so when the size of the tree grows, it becomes more and more fitted to the data. When fitting classification trees, the process is often first started with a very large tree, and then the unnecessary branches are removed in the process of pruning, until the complexity of the tree is reduces to the optimal level. Constructing the trees, pruning, and evaluating the results can be done in a variety of different ways.
+In tree-based methods, the data points are divided into smaller and smaller fragments based on some set of rules. A new split happens at each node, so when the size of the tree grows, it becomes more and more fitted to the data. When fitting classification trees, the process is often first started with a very large tree, and then the unnecessary branches are removed in the process of pruning, until the complexity of the tree is reduces to the optimal level. Constructing the trees, pruning, and evaluating the results can be done in a variety of different ways.
 
-A often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
+We tried some tree-based models, but didn't have time to finish any of them before submitting the preliminary report. Therefore, we didn't end up selecting any of them as our classifier, even though they gave quite good results. The calculations for the tree-based models have been done after submitting the initial results and selecting another classifier, so their main function was to test the chosen classifier and compare its performance to other options that we could have chosen.
+
+#### Random Forest
+One often used tree-based classification method is called Random Forest. It is based on the process described above, but only a random subset of the features is considered at each split of the tree. This is repeated multiple times and in the end, the obtained forest is evaluated and the best splits at each point are found. For Random Forest classifier, we used the R library *randomForest*.
+
+We tried the model with both the full dataset and the dataset with 36 variables, of which the model with the fewer variables performed better. We used that model as our Random Forest classifier.
+
+
+#### GBM
+Another tree-based model that we used was GBM (gradient boosting machine). It starts by building a set of shallow trees, but with each iteration, it learns more about the data and improves each previously built tree. By finally combining the trees, it can produce very good models for all types of data sets. It's advantage is that it doesn't necessarily require any pre-processing of the data, although the model can be improved by this. For GBM classifier, we used the R library *GBM*.
+
+We tried also this method with both the full dataset and the 168 dataset, which both gave very similar result. The model built with the 168 dataset, however, performed slightly better, so we selected that as the one to include in the comparison. Further pre-processing and variable selection didn't improve the model. We tried the model with different parameters, but in the end, couldn't produce better classifier than the ones we already had.
 
 
 ## Classifier performances
@@ -430,12 +441,13 @@ Model type & Loo-CV accuracy & Loo-CV perplexity&Binary accuracy on test data & 
 \hline
 Dummy model & 0 & 2.01&\\
 Logistic regression & 0.8728448 & 1.338286&0.8445596\\
-Naive Bayes & 0.81 & 152.85\\
-LDA & 0.89 & 1.33\\
-QDA & 0.85 & 6.34\\
+Naive Bayes & 0.8125 & 166.084 &\\
+LDA & 0.8922414 & 1.32923 &\\
+QDA & 0.8534483 & 6.34633 &\\
 SVM & 0.8793103 & -&0.8435233\\
 Lasso & 0.8965517 & 1.29399&0.8746114\\
 Random Forest & 0.89 & 1.35\\
+GBM &	0.8943966 & 1.324385 & 0.8746114 \\
 \hline
 \end{tabular}
 \end{table}
@@ -446,16 +458,13 @@ We also calculated for curiosity's sake the binary accuracies on the npf_test da
 
 (Of note: the model is different from the one we originally used in the preliminary report and in the video, mostly because we noticed in our cross-validation calculations a reference error, which led to the loo-CV predictions being done on a dataset with including all observations, including the one being predicted, which naturally inflated our estimates of accuracy. When we noticed this error, we felt that no other models of the ones that had been observed were sufficiently close in terms of estimated perplexity so we chose to run Lasso with reduced amount of folds).
 
-With our observed best-performing models being the the random forest model, the Lasso regression model and the linear discriminant analysis. Out of these models, we eventually chose to use the Lasso model as it was the best-performing model. The amount of information we could gain through CV calculations in R without R crashing were relatively limited, to the degree that we couldn't usually even calculate the cross-validated best choice for the tuning parameter. As a result, we chose to forego cross-validation in relation to our multinomial model.
+Our best-performing models were the the Random Forest model, the GBM model, the Lasso regression model and the linear discriminant analysis with very small differences in the binary accuracy. Out of these models, we eventually chose to use the Lasso model as it performed slightly better than the other mentioned models. The amount of information we could gain through CV calculations in R without R crashing were relatively limited, to the degree that we couldn't usually even calculate the cross-validated best choice for the tuning parameter. As a result, we chose to forego cross-validation in relation to our multinomial model.
 
+We also chose not to use the LDA model after assessing the assumptions related to the model. LDA models have been found to perform best with a limited amount of variables and we eventually questioned, whether we should attempt to reduce the amount of variables included in the model further from the current amount of 38 from the model. On top of this, considering the assumption of equal variances, the boxplots we drew earlier in the report implied that class "nonevent" might have a larger variance in some variables than the class "event".
 
+We made the decision of the model based on preliminary results, and though classification trees would represent an equally viable solution, we calculated those results only later on, and by that point had already chosen to focus on the other models. Initially, we calculated the results for the logistic regression model, but after noticing the error in the accuracy estimations, we chose to give up this model.
 
-We eventually also chose to not use the LDA model after assessing the assumptions related to the model. LDA models have been found to perform best with a limited amount of variables and we still question whether we should attempt to reduce the amount of variables from the model further from the current amount of 38 from the model. On top of this, considering the assumption of equal variances, the boxplots we drew earlier in the report imply that class "nonevent" might have larger variance for some variables than class "event".
-
-We made the decision of model based on preliminary results, and though classification trees would represent an equally viable solution, we calculated those results only later on, and by that point had already calculated the results for the logistic regression model. 
-
-Thus we were left with the Lasso model. However, we could question whether for example specific variables need to be observed based on other research, and Lasso doesn't offer possibilities for this. Because cross-validation with a smaller amount of folds can give varying results different times it has been run, we eventually chose to run the cross-validation several times, check the interval of values received this way, and make decisions based on this interval.
-
+Thus, we were left with the Lasso model. However, we could question, whether for example specific variables need to be observed based on other research, and Lasso doesn't offer possibilities for this. Because cross-validation with a smaller amount of folds can give varying results different times it has been run, we eventually chose to run the cross-validation several times, check the interval of values received this way, and make decisions based on this interval.
 
 
 ## Multiclass-classifier
